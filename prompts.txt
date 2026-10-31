@@ -1,0 +1,177 @@
+================================================================================
+MASTER PROMPT: BUILD BILLTRAP
+================================================================================
+
+Act as a senior frontend developer, UI/UX designer, JavaScript engineer, and QA tester. Build a complete, polished, functional web application called BILLTRAP.
+
+## 1. PROJECT VISION
+
+BILLTRAP helps people identify unusual increases, possible duplicate charges, unexpected fees, and recurring cost increases in everyday bills.
+
+The goal is to help users understand their bills and investigate potential overcharges before contacting a provider.
+
+This must be a working application, not a static dashboard or design mockup.
+
+## 2. STRICT TECHNOLOGY REQUIREMENTS
+
+Use only:
+- HTML5
+- CSS3
+- Vanilla JavaScript
+
+Do not use React, TypeScript, Node.js, backend servers, build tools, or other programming languages.
+
+Use localStorage for persistence. The project must run by opening its HTML files directly in a browser.
+
+External CSS or JavaScript libraries should not be required. Prefer native HTML, CSS, and JavaScript.
+
+## 3. REQUIRED THREE STANDALONE HTML PAGES
+
+Create exactly these three main HTML pages:
+
+### Page 1: billtrap.html — Bill Analyzer
+Features:
+- Form to add a bill with provider, category, billing period, total amount, and individual charge descriptions.
+- Edit and delete saved bills.
+- Compare the current bill with a previous bill from the same provider or category.
+- Calculate absolute and percentage changes.
+- Flag unusually large increases using a configurable threshold.
+- Detect potentially duplicated line items within a bill.
+- Filter and sort saved bills.
+- Show an explanation for every warning.
+- Include sample bills for electricity, mobile, internet, and insurance.
+- Let users clear sample data and restore it.
+
+### Page 2: history.html — Spending History
+Features:
+- Display bills in a searchable, filterable history.
+- Compare monthly spending across billing categories.
+- Show a monthly spending chart using CSS or native SVG.
+- Calculate average spending and month-over-month changes.
+- Highlight recurring price increases.
+- Display annualized cost estimates when a higher bill continues.
+- Allow CSV export of bill records.
+- Allow users to edit and delete historical records.
+- Include empty states when no data exists.
+
+### Page 3: action-center.html — Action Center
+Features:
+- Display suspicious or unusual charges identified by the analyzer.
+- Let users mark a warning as reviewed, resolved, or dismissed.
+- Generate a customizable complaint or clarification letter.
+- Copy the generated letter to the clipboard.
+- Create a checklist for contacting a service provider.
+- Track contact dates, reference numbers, and outcomes.
+- Show estimated potential savings from flagged issues.
+- Export a report of findings.
+- Clearly distinguish suspected issues from confirmed errors.
+
+## 4. FUNCTIONAL REQUIREMENTS
+
+Every page must contain at least five meaningful, working interactive features.
+
+All buttons, forms, search fields, filters, navigation links, modal dialogs, exports, and settings must work.
+
+Use shared localStorage keys and a consistent data schema across the three HTML files so changes on one page are reflected on the others.
+
+Because the pages must be standalone HTML files, place the required CSS and JavaScript inside each HTML file. Avoid dependencies on a development server.
+
+Validate numeric amounts, dates, required fields, and invalid inputs. Show helpful error messages and success feedback.
+
+Provide sample data so the application is immediately demonstrable.
+
+## 5. ANALYSIS LOGIC
+
+Implement deterministic JavaScript calculations:
+- Absolute change = current bill minus previous bill.
+- Percentage change = change divided by previous bill, multiplied by 100, when the previous amount is greater than zero.
+- Annualized increase estimate = positive monthly increase multiplied by 12, only when monthly billing is a reasonable assumption.
+- Duplicate detection should compare normalized descriptions and amounts and explain why an item was flagged.
+- Allow users to configure an unusual-increase threshold.
+
+Never claim that an increase or duplicate is definitively fraudulent. Display labels such as "Review recommended" and "Possible duplicate."
+
+Do not invent information from an external provider or claim that a real bill has been verified.
+
+## 6. DESIGN DIRECTION
+
+Create a premium, modern fintech interface.
+
+Visual style:
+- Dark navy background.
+- White or light-gray text.
+- Lime-green accent for positive savings.
+- Amber for warnings.
+- Red for serious potential issues.
+- Elegant cards, subtle borders, tasteful shadows, and restrained gradients.
+- Modern typography, strong spacing, polished forms, and consistent icons.
+- Responsive design for mobile phones, tablets, and desktops.
+
+Include:
+- Consistent sidebar or top navigation.
+- Clear page headings.
+- Search and filter controls.
+- Helpful empty states.
+- Toast notifications.
+- Accessible contrast and visible focus states.
+- Confirmation before destructive actions.
+
+Avoid excessive animations, clutter, fake analytics, and decorative controls that do nothing.
+
+## 7. DATA AND PRIVACY
+
+Use realistic fictional sample data, clearly labeled as sample data.
+
+Persist records in localStorage. Explain that browser-local data is not a secure cloud backup and may be lost if browser data is cleared.
+
+Do not collect bank credentials, payment card details, or sensitive account passwords.
+
+Do not add bank integrations or paid APIs.
+
+## 8. DELIVERABLES
+
+Create:
+- billtrap.html
+- history.html
+- action-center.html
+- README.md with setup and usage instructions.
+- prompts.txt containing this master prompt and any additional implementation prompts.
+
+If the environment supports file creation, create the files directly in the project folder.
+
+Do not merely show code snippets or explain what to do. Implement the complete application.
+
+## 9. TESTING AND FINAL REVIEW
+
+Before finishing:
+- Verify that all three pages open independently.
+- Verify all navigation links.
+- Test add, edit, delete, search, sorting, and filtering.
+- Test calculations with zero, negative, and invalid values.
+- Verify data persists across pages.
+- Test complaint-letter generation and copying.
+- Test CSV/report exports.
+- Check mobile responsiveness.
+- Confirm that every visible button has a working action.
+- Fix any issues found.
+
+Finish by listing all created files, explaining how to run the project, and providing a short manual testing checklist.
+
+Prioritize a complete, reliable, working prototype over unnecessary complexity. Ensure the interface is intuitive and the user flow remains seamless throughout.
+
+
+================================================================================
+ADDITIONAL IMPLEMENTATION PROMPTS
+================================================================================
+
+### Implementation Prompt 1 — Shared LocalStorage Schema & Deterministic Engine
+Design a self-contained Vanilla JavaScript data and analysis layer embedded identically in `billtrap.html`, `history.html`, and `action-center.html` using keys `billtrap_bills_v1`, `billtrap_actions_v1`, `billtrap_settings_v1`, and `billtrap_checklist_v1`. Seed 18 realistic fictional sample statements across Electricity (NorthStar Energy), Mobile (Pulse Wireless), Internet (Veridian Fiber), and Insurance (HarborShield Insurance) with `isSample: true`. Guard against division by zero when `previousBill.totalAmount === 0`, reject negative amounts, only compute `× 12` annualized cost estimates when `billingCycle === 'monthly'`, normalize line item descriptions for duplicate detection, and de-duplicate bill-level estimated savings so multi-warning bills never overstate savings.
+
+### Implementation Prompt 2 — Standalone Fintech UI System (Dark Navy & Lime Accent)
+Build a cohesive dark-navy (`#080d19` / `#101829`) and lime-green (`#65e87b`) fintech workspace layout with tabular numerals (`JetBrains Mono`), responsive mobile navigation drawer, accessible `:focus-visible` states, custom confirmation modals (no `window.alert`/`window.confirm`), and toast notifications. Render static metadata cleanly with typographic separators and pair every warning color (amber/red) with explicit non-accusatory labels (`Review recommended`, `Possible duplicate`, `Recurring increase`).
+
+### Implementation Prompt 3 — Cross-Page QA & Edge-Case Verification
+Verify every interactive control across all three standalone HTML files:
+1. `billtrap.html`: Add/edit/delete statements, copy line-item sum to total, live threshold slider/input, provider vs. category comparison toggle, side-by-side comparison inspector, search/filter/sort, and Clear/Restore Sample Data.
+2. `history.html`: Native SVG monthly trend chart, Monthly Category Comparison Matrix, Recurring Increases & Annualized Cost view, historical record edit/delete modals, empty states, and RFC-4180 CSV download.
+3. `action-center.html`: Deep-link `?bill=<id>` filtering, `Needs Review / Reviewed / Resolved / Dismissed` status updates, explicit `Suspected Issue` vs. `Confirmed Billing Error` classification, customizable inquiry letter generator with clipboard copy & `.txt` download, persistent call checklist, provider contact reference logger, and `.txt`/`.csv` findings report exports.

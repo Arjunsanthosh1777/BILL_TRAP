@@ -1,0 +1,2607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BILLTRAP — Bill Analyzer</title>
+  <meta name="description" content="Analyze everyday bills to detect unusual increases, possible duplicate line items, and unexpected fees." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #080d19;
+      --bg-sidebar: #0b1120;
+      --bg-surface: #101829;
+      --bg-elevated: #152036;
+      --bg-input: #0c1322;
+      --border-subtle: rgba(148, 163, 184, 0.12);
+      --border-strong: rgba(148, 163, 184, 0.24);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-lime: #65e87b;
+      --accent-lime-hover: #52dc69;
+      --accent-lime-soft: rgba(101, 232, 123, 0.12);
+      --accent-ink: #051408;
+      --warn-amber: #fbbf24;
+      --warn-amber-soft: rgba(251, 191, 36, 0.12);
+      --danger-red: #f87171;
+      --danger-red-soft: rgba(248, 113, 113, 0.12);
+      --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 6px;
+      --sidebar-w: 256px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent-lime);
+      outline-offset: 2px;
+    }
+
+    /* App Shell */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 22px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .brand-wordmark {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .sidebar-nav {
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-link-inner {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+    }
+
+    .nav-link.active {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    .nav-count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.85;
+    }
+
+    .sidebar-footer {
+      padding: 16px 18px 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .privacy-note {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .sidebar-util-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      transition: border-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .sidebar-util-btn:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    /* Mobile Header */
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 56px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.72);
+      z-index: 35;
+    }
+
+    /* Main Workspace */
+    .main-area {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      min-width: 0;
+      padding: 32px 36px 56px;
+    }
+
+    .workspace-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .page-title-group h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.4vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .page-subtitle {
+      margin: 6px 0 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+      max-width: 68ch;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+      white-space: nowrap;
+      min-height: 40px;
+    }
+
+    .btn-primary {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-lime-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      border-color: var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elevated);
+    }
+
+    .btn-danger {
+      background: var(--danger-red-soft);
+      border-color: rgba(248, 113, 113, 0.3);
+      color: var(--danger-red);
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 113, 113, 0.2);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12.5px;
+      min-height: 34px;
+    }
+
+    /* Metric Strip */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-foot {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .text-lime { color: var(--accent-lime); }
+    .text-amber { color: var(--warn-amber); }
+    .text-red { color: var(--danger-red); }
+    .text-muted { color: var(--text-secondary); }
+
+    /* Sample & Threshold Control Strip */
+    .control-banner {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .threshold-control {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .threshold-control label {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .range-slider {
+      accent-color: var(--accent-lime);
+      width: 140px;
+      cursor: pointer;
+    }
+
+    .segmented-bar {
+      display: inline-flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .seg-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .seg-btn.active {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    /* Main Split Grid: Form / Inspector + Saved Bills */
+    .analyzer-layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    /* Form Styles */
+    .form-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .input, .select, .textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      min-height: 40px;
+      transition: border-color 0.15s ease;
+    }
+
+    .input:focus, .select:focus, .textarea:focus {
+      border-color: var(--accent-lime);
+      outline: none;
+    }
+
+    .field-error {
+      color: var(--danger-red);
+      font-size: 12.5px;
+      margin-top: 2px;
+      display: none;
+    }
+
+    .field-error.visible {
+      display: block;
+    }
+
+    .line-items-box {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .line-items-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .line-item-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 110px 36px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .remove-item-btn {
+      width: 36px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      display: grid;
+      place-items: center;
+    }
+
+    .remove-item-btn:hover {
+      color: var(--danger-red);
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+
+    .sum-helper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      padding-top: 4px;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--accent-lime);
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* Filter Toolbar */
+    .filter-toolbar {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    /* Bills List & Inspector */
+    .bills-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bill-row {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      background: rgba(12, 19, 34, 0.55);
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .bill-row:hover {
+      border-color: var(--border-strong);
+    }
+
+    .bill-row.selected {
+      border-color: var(--accent-lime);
+      background: rgba(101, 232, 123, 0.04);
+    }
+
+    .bill-row-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .bill-title {
+      margin: 0;
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .bill-meta {
+      margin-top: 4px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bill-amount-col {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .bill-amount {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bill-delta {
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+    }
+
+    .warnings-list {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .warning-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+
+    .warning-icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .warning-label {
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    .bill-actions-row {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .bill-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Comparison Inspector Panel */
+    .inspector-panel {
+      margin-bottom: 20px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      background: var(--bg-surface);
+      padding: 22px 24px;
+    }
+
+    .comparison-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      padding: 14px 0;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      margin: 14px 0 18px;
+    }
+
+    .comp-stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .comp-stat-val {
+      font-size: 17px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      margin-top: 3px;
+    }
+
+    .line-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    .line-table th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .line-table th.num, .line-table td.num {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .line-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.07);
+    }
+
+    .line-table tr.flagged-dup td {
+      background: rgba(248, 113, 113, 0.08);
+    }
+
+    .line-table tr.flagged-fee td {
+      background: rgba(251, 191, 36, 0.07);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 44px 24px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .empty-state p {
+      margin: 0 auto 20px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      max-width: 46ch;
+    }
+
+    /* Modal Dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.78);
+      display: none;
+      place-items: center;
+      padding: 20px;
+      z-index: 60;
+    }
+
+    .modal-overlay.open {
+      display: grid;
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      max-width: 480px;
+      width: 100%;
+      padding: 24px;
+    }
+
+    .modal-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .modal-card p {
+      margin: 0 0 20px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Toast */
+    .toast-region {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 80;
+      max-width: 360px;
+    }
+
+    .toast {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      animation: toast-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1120px) {
+      .analyzer-layout {
+        grid-template-columns: 1fr;
+      }
+      .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .filter-toolbar {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .sidebar-backdrop.open {
+        display: block;
+      }
+      .mobile-topbar {
+        display: flex;
+      }
+      .main-area {
+        margin-left: 0;
+        padding: 20px 16px 48px;
+      }
+      .comparison-strip {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .metrics-grid, .form-row-2, .filter-toolbar {
+        grid-template-columns: 1fr;
+      }
+      .line-item-row {
+        grid-template-columns: 1fr 96px 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Mobile Top Header -->
+  <header class="mobile-topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="brand-mark" aria-hidden="true">B</div>
+      <span class="brand-wordmark">BILLTRAP</span>
+    </div>
+    <button type="button" class="icon-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-shell">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" aria-label="Primary Sidebar">
+      <div class="brand-bar">
+        <div class="brand-mark" aria-hidden="true">B</div>
+        <span class="brand-wordmark">BILLTRAP</span>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Main Pages">
+        <a href="./billtrap.html" class="nav-link active" aria-current="page">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4" stroke-linecap="round"/>
+            </svg>
+            <span>Bill Analyzer</span>
+          </span>
+          <span class="nav-count" id="navBillCount">0</span>
+        </a>
+        <a href="./history.html" class="nav-link">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 14l4-4 4 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Spending History</span>
+          </span>
+        </a>
+        <a href="./action-center.html" class="nav-link">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Action Center</span>
+          </span>
+          <span class="nav-count" id="navOpenFindings">0</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-util-btn" id="openPrivacyModalBtn">
+          <span>Data &amp; Privacy</span>
+          <span class="tabular" id="sidebarSampleIndicator">Local</span>
+        </button>
+        <p class="privacy-note">
+          Bills are saved only in this browser's localStorage. Clearing browser data deletes unexported records. Never enter bank passwords or card numbers.
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-area">
+      <div class="workspace-container">
+        <!-- Page Heading -->
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65e87b" stroke-width="2.2" aria-hidden="true">
+                <path d="M21 12V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h7" stroke-linecap="round"/>
+                <path d="M16 19l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Bill Analyzer
+            </h1>
+            <p class="page-subtitle">
+              Log utility, telecom, and insurance statements to spot unusual price jumps, possible duplicate line items, and unexpected new fees before calling your provider.
+            </p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn btn-secondary" id="restoreSamplesBtn">Restore Sample Data</button>
+            <button type="button" class="btn btn-secondary" id="clearSamplesBtn">Clear Sample Data</button>
+            <a href="./action-center.html" class="btn btn-primary">Review Flagged Issues</a>
+          </div>
+        </div>
+
+        <!-- Summary Metrics -->
+        <section class="metrics-grid" aria-label="Analyzer Summary">
+          <div class="metric-card">
+            <span class="metric-label">Saved Statements</span>
+            <span class="metric-value" id="metricTotalBills">0</span>
+            <span class="metric-foot" id="metricSampleSplit">0 user · 0 sample</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Bills Flagged for Review</span>
+            <span class="metric-value text-amber" id="metricFlaggedBills">0</span>
+            <span class="metric-foot" id="metricThresholdNote">Using 15% increase threshold</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Possible Duplicate Items</span>
+            <span class="metric-value text-red" id="metricDuplicateCount">0</span>
+            <span class="metric-foot">Normalized description + amount match</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Est. Monthly Reviewable Delta</span>
+            <span class="metric-value text-lime" id="metricPotentialSavings">$0.00</span>
+            <span class="metric-foot">De-duplicated flagged increases &amp; fees</span>
+          </div>
+        </section>
+
+        <!-- Threshold & Comparison Mode Controls -->
+        <section class="control-banner" aria-label="Analysis Configuration">
+          <div class="threshold-control">
+            <label for="thresholdSlider">Unusual Increase Threshold:</label>
+            <input type="range" id="thresholdSlider" class="range-slider" min="5" max="50" step="1" value="15" />
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="number" id="thresholdInput" class="input tabular" min="1" max="100" step="1" value="15" style="width:74px;padding:6px 10px;min-height:36px;" aria-label="Unusual increase percentage threshold" />
+              <span class="tabular" style="font-size:13.5px;color:var(--text-secondary);">%</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--text-secondary);">Compare Baseline:</span>
+            <div class="segmented-bar" role="group" aria-label="Comparison Baseline">
+              <button type="button" class="seg-btn active" data-comp-mode="provider">Same Provider</button>
+              <button type="button" class="seg-btn" data-comp-mode="category">Same Category</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Main Analyzer Workspace -->
+        <div class="analyzer-layout">
+          <!-- Left Column: Add / Edit Bill Form -->
+          <section class="panel" aria-labelledby="formHeading">
+            <div class="panel-header">
+              <h2 id="formHeading">Add Statement</h2>
+              <button type="button" class="btn btn-secondary btn-sm" id="resetFormBtn" style="display:none;">Cancel Edit</button>
+            </div>
+
+            <form id="billForm" class="form-grid" novalidate>
+              <input type="hidden" id="editingBillId" value="" />
+
+              <div class="field">
+                <label for="providerInput">Provider Name *</label>
+                <input type="text" id="providerInput" class="input" placeholder="e.g., NorthStar Energy, Pulse Wireless" maxlength="80" required />
+                <div class="field-error" id="providerError"></div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="field">
+                  <label for="categoryInput">Category *</label>
+                  <select id="categoryInput" class="select" required>
+                    <option value="Electricity">Electricity</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="Internet">Internet</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Water & Gas">Water &amp; Gas</option>
+                    <option value="Streaming">Streaming</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="periodInput">Billing Period (YYYY-MM) *</label>
+                  <input type="month" id="periodInput" class="input tabular" required />
+                  <div class="field-error" id="periodError"></div>
+                </div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="field">
+                  <label for="cycleInput">Billing Cadence</label>
+                  <select id="cycleInput" class="select">
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annual">Annual</option>
+                    <option value="one-time">One-time</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="totalAmountInput">Total Statement Amount ($) *</label>
+                  <input type="number" id="totalAmountInput" class="input tabular" min="0" step="0.01" placeholder="0.00" required />
+                  <div class="field-error" id="amountError"></div>
+                </div>
+              </div>
+
+              <!-- Individual Line Items -->
+              <div class="line-items-box">
+                <div class="line-items-header">
+                  <span style="font-size:13px;font-weight:600;color:var(--text-secondary);">Individual Charge Descriptions</span>
+                  <button type="button" class="btn btn-secondary btn-sm" id="addLineItemBtn">+ Add Charge</button>
+                </div>
+
+                <div id="lineItemsContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+                <div class="field-error" id="lineItemsError"></div>
+
+                <div class="sum-helper">
+                  <span>Line items sum: <strong class="tabular" id="lineItemsSumDisplay">$0.00</strong></span>
+                  <button type="button" class="link-btn" id="useLineSumBtn">Copy sum to Total</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="notesInput">Statement Notes (Optional)</label>
+                <input type="text" id="notesInput" class="input" placeholder="e.g., Promo discount ended, meter estimate" maxlength="160" />
+              </div>
+
+              <div style="display:flex;gap:10px;padding-top:4px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;" id="submitBillBtn">Save &amp; Analyze Bill</button>
+                <button type="button" class="btn btn-secondary" id="clearFormFieldsBtn">Clear</button>
+              </div>
+            </form>
+          </section>
+
+          <!-- Right Column: Comparison Inspector + Filterable Saved Bills -->
+          <div>
+            <!-- Selected Bill Comparison Inspector -->
+            <section class="inspector-panel" id="inspectorPanel" style="display:none;" aria-live="polite">
+              <div class="panel-header" style="margin-bottom:8px;">
+                <div>
+                  <h2 id="inspectorTitle" style="margin:0;font-size:18px;">Bill Comparison Breakdown</h2>
+                  <div class="bill-meta" id="inspectorMeta"></div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="closeInspectorBtn">Close Inspector</button>
+              </div>
+
+              <div class="comparison-strip" id="inspectorMetrics"></div>
+
+              <div id="inspectorWarningsBox" style="margin-bottom:16px;"></div>
+
+              <div id="inspectorLineItemsBox"></div>
+            </section>
+
+            <!-- Saved Bills List -->
+            <section class="panel" aria-labelledby="savedBillsHeading">
+              <div class="panel-header">
+                <h2 id="savedBillsHeading">Saved Bills &amp; Automated Warnings</h2>
+                <span class="tabular text-muted" style="font-size:13px;" id="filteredCountLabel">0 shown</span>
+              </div>
+
+              <div class="filter-toolbar">
+                <input type="search" id="searchInput" class="input" placeholder="Search provider, charge, note..." aria-label="Search bills" />
+                <select id="filterCategory" class="select" aria-label="Filter by category">
+                  <option value="ALL">All Categories</option>
+                  <option value="Electricity">Electricity</option>
+                  <option value="Mobile">Mobile</option>
+                  <option value="Internet">Internet</option>
+                  <option value="Insurance">Insurance</option>
+                  <option value="Water & Gas">Water &amp; Gas</option>
+                  <option value="Streaming">Streaming</option>
+                  <option value="Other">Other</option>
+                </select>
+                <select id="filterFlagStatus" class="select" aria-label="Filter by warning status">
+                  <option value="ALL">All Statements</option>
+                  <option value="FLAGGED">Flagged Only</option>
+                  <option value="DUPLICATES">Possible Duplicates</option>
+                  <option value="INCREASES">Unusual Increases</option>
+                  <option value="SAMPLE">Sample Data Only</option>
+                  <option value="USER">My Added Bills Only</option>
+                </select>
+                <select id="sortOrder" class="select" aria-label="Sort bills">
+                  <option value="period_desc">Period (Newest First)</option>
+                  <option value="period_asc">Period (Oldest First)</option>
+                  <option value="amount_desc">Amount (High to Low)</option>
+                  <option value="amount_asc">Amount (Low to High)</option>
+                  <option value="pct_desc">Largest % Increase</option>
+                </select>
+              </div>
+
+              <div id="billsListContainer" class="bills-stack"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Confirmation & Privacy Modal -->
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <h3 id="modalTitle">Confirm Action</h3>
+      <p id="modalMessage">Are you sure you want to proceed?</p>
+      <div id="modalExtraContent"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modalCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="modalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =====================================================================
+         SHARED BILLTRAP CORE ENGINE (Consistent across all 3 standalone pages)
+         ===================================================================== */
+      const STORAGE_KEYS = {
+        BILLS: 'billtrap_bills_v1',
+        ACTIONS: 'billtrap_actions_v1',
+        SETTINGS: 'billtrap_settings_v1'
+      };
+
+      const memoryFallback = {};
+
+      function readStorage(key, fallback) {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw === null) return fallback;
+          return JSON.parse(raw);
+        } catch (err) {
+          return key in memoryFallback ? memoryFallback[key] : fallback;
+        }
+      }
+
+      function writeStorage(key, value) {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (err) {
+          memoryFallback[key] = value;
+        }
+      }
+
+      function round2(num) {
+        return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+      }
+
+      function fmtCurrency(val) {
+        if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
+        const n = Number(val);
+        const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (n < 0 ? '-$' : '$') + abs;
+      }
+
+      function fmtSignedCurrency(val) {
+        if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
+        const n = round2(Number(val));
+        if (n > 0) return '+' + fmtCurrency(n);
+        return fmtCurrency(n);
+      }
+
+      function escapeHtml(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function normalizeDesc(desc) {
+        return String(desc || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function getSampleBills() {
+        return [
+          {
+            id: 'sample_elec_2026_06',
+            provider: 'NorthStar Energy',
+            category: 'Electricity',
+            billingPeriod: '2026-06',
+            billingCycle: 'monthly',
+            totalAmount: 114.20,
+            lineItems: [
+              { id: 'li_nse_6_1', description: 'Base Residential Delivery', amount: 18.00 },
+              { id: 'li_nse_6_2', description: 'Electricity Usage (710 kWh)', amount: 89.40 },
+              { id: 'li_nse_6_3', description: 'State Grid Reliability Fee', amount: 6.80 }
+            ],
+            notes: 'Sample summer baseline statement',
+            isSample: true,
+            createdAt: '2026-06-08T10:00:00.000Z'
+          },
+          {
+            id: 'sample_elec_2026_07',
+            provider: 'NorthStar Energy',
+            category: 'Electricity',
+            billingPeriod: '2026-07',
+            billingCycle: 'monthly',
+            totalAmount: 118.50,
+            lineItems: [
+              { id: 'li_nse_7_1', description: 'Base Residential Delivery', amount: 18.00 },
+              { id: 'li_nse_7_2', description: 'Electricity Usage (740 kWh)', amount: 93.70 },
+              { id: 'li_nse_7_3', description: 'State Grid Reliability Fee', amount: 6.80 }
+            ],
+            notes: 'Sample July statement',
+            isSample: true,
+            createdAt: '2026-07-08T10:00:00.000Z'
+          },
+          {
+            id: 'sample_elec_2026_08',
+            provider: 'NorthStar Energy',
+            category: 'Electricity',
+            billingPeriod: '2026-08',
+            billingCycle: 'monthly',
+            totalAmount: 121.00,
+            lineItems: [
+              { id: 'li_nse_8_1', description: 'Base Residential Delivery', amount: 18.00 },
+              { id: 'li_nse_8_2', description: 'Electricity Usage (760 kWh)', amount: 96.20 },
+              { id: 'li_nse_8_3', description: 'State Grid Reliability Fee', amount: 6.80 }
+            ],
+            notes: 'Sample August statement',
+            isSample: true,
+            createdAt: '2026-08-08T10:00:00.000Z'
+          },
+          {
+            id: 'sample_elec_2026_09',
+            provider: 'NorthStar Energy',
+            category: 'Electricity',
+            billingPeriod: '2026-09',
+            billingCycle: 'monthly',
+            totalAmount: 119.80,
+            lineItems: [
+              { id: 'li_nse_9_1', description: 'Base Residential Delivery', amount: 18.00 },
+              { id: 'li_nse_9_2', description: 'Electricity Usage (750 kWh)', amount: 95.00 },
+              { id: 'li_nse_9_3', description: 'State Grid Reliability Fee', amount: 6.80 }
+            ],
+            notes: 'Sample September statement',
+            isSample: true,
+            createdAt: '2026-09-08T10:00:00.000Z'
+          },
+          {
+            id: 'sample_elec_2026_10',
+            provider: 'NorthStar Energy',
+            category: 'Electricity',
+            billingPeriod: '2026-10',
+            billingCycle: 'monthly',
+            totalAmount: 164.70,
+            lineItems: [
+              { id: 'li_nse_10_1', description: 'Base Residential Delivery', amount: 18.00 },
+              { id: 'li_nse_10_2', description: 'Electricity Usage (765 kWh)', amount: 96.80 },
+              { id: 'li_nse_10_3', description: 'Peak Demand Surcharge', amount: 29.90 },
+              { id: 'li_nse_10_4', description: 'Environmental Recovery Fee', amount: 10.00 },
+              { id: 'li_nse_10_5', description: 'Environmental Recovery Fee', amount: 10.00 }
+            ],
+            notes: 'Sample October statement with new surcharge and repeated fee',
+            isSample: true,
+            createdAt: '2026-10-08T10:00:00.000Z'
+          },
+          {
+            id: 'sample_mob_2026_07',
+            provider: 'Pulse Wireless',
+            category: 'Mobile',
+            billingPeriod: '2026-07',
+            billingCycle: 'monthly',
+            totalAmount: 72.00,
+            lineItems: [
+              { id: 'li_pw_7_1', description: 'Unlimited 5G Core Plan', amount: 60.00 },
+              { id: 'li_pw_7_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }
+            ],
+            notes: 'Sample mobile plan',
+            isSample: true,
+            createdAt: '2026-07-12T10:00:00.000Z'
+          },
+          {
+            id: 'sample_mob_2026_08',
+            provider: 'Pulse Wireless',
+            category: 'Mobile',
+            billingPeriod: '2026-08',
+            billingCycle: 'monthly',
+            totalAmount: 72.00,
+            lineItems: [
+              { id: 'li_pw_8_1', description: 'Unlimited 5G Core Plan', amount: 60.00 },
+              { id: 'li_pw_8_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }
+            ],
+            notes: 'Sample mobile plan',
+            isSample: true,
+            createdAt: '2026-08-12T10:00:00.000Z'
+          },
+          {
+            id: 'sample_mob_2026_09',
+            provider: 'Pulse Wireless',
+            category: 'Mobile',
+            billingPeriod: '2026-09',
+            billingCycle: 'monthly',
+            totalAmount: 72.00,
+            lineItems: [
+              { id: 'li_pw_9_1', description: 'Unlimited 5G Core Plan', amount: 60.00 },
+              { id: 'li_pw_9_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }
+            ],
+            notes: 'Sample mobile plan',
+            isSample: true,
+            createdAt: '2026-09-12T10:00:00.000Z'
+          },
+          {
+            id: 'sample_mob_2026_10',
+            provider: 'Pulse Wireless',
+            category: 'Mobile',
+            billingPeriod: '2026-10',
+            billingCycle: 'monthly',
+            totalAmount: 99.98,
+            lineItems: [
+              { id: 'li_pw_10_1', description: 'Unlimited 5G Core Plan', amount: 60.00 },
+              { id: 'li_pw_10_2', description: 'Device Protection Plus', amount: 13.99 },
+              { id: 'li_pw_10_3', description: 'Device Protection Plus', amount: 13.99 },
+              { id: 'li_pw_10_4', description: 'Federal & State Telecom Taxes', amount: 12.00 }
+            ],
+            notes: 'Sample October mobile bill with double add-on entry',
+            isSample: true,
+            createdAt: '2026-10-12T10:00:00.000Z'
+          },
+          {
+            id: 'sample_int_2026_06',
+            provider: 'Veridian Fiber',
+            category: 'Internet',
+            billingPeriod: '2026-06',
+            billingCycle: 'monthly',
+            totalAmount: 65.00,
+            lineItems: [
+              { id: 'li_vf_6_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }
+            ],
+            notes: 'Sample promotional internet rate',
+            isSample: true,
+            createdAt: '2026-06-15T10:00:00.000Z'
+          },
+          {
+            id: 'sample_int_2026_07',
+            provider: 'Veridian Fiber',
+            category: 'Internet',
+            billingPeriod: '2026-07',
+            billingCycle: 'monthly',
+            totalAmount: 65.00,
+            lineItems: [
+              { id: 'li_vf_7_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }
+            ],
+            notes: 'Sample internet bill',
+            isSample: true,
+            createdAt: '2026-07-15T10:00:00.000Z'
+          },
+          {
+            id: 'sample_int_2026_08',
+            provider: 'Veridian Fiber',
+            category: 'Internet',
+            billingPeriod: '2026-08',
+            billingCycle: 'monthly',
+            totalAmount: 70.00,
+            lineItems: [
+              { id: 'li_vf_8_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 },
+              { id: 'li_vf_8_2', description: 'Network Infrastructure Fee', amount: 5.00 }
+            ],
+            notes: 'Sample internet bill with new fee',
+            isSample: true,
+            createdAt: '2026-08-15T10:00:00.000Z'
+          },
+          {
+            id: 'sample_int_2026_09',
+            provider: 'Veridian Fiber',
+            category: 'Internet',
+            billingPeriod: '2026-09',
+            billingCycle: 'monthly',
+            totalAmount: 75.00,
+            lineItems: [
+              { id: 'li_vf_9_1', description: 'Fiber 500 Symmetric Internet', amount: 70.00 },
+              { id: 'li_vf_9_2', description: 'Network Infrastructure Fee', amount: 5.00 }
+            ],
+            notes: 'Sample gradual plan step-up',
+            isSample: true,
+            createdAt: '2026-09-15T10:00:00.000Z'
+          },
+          {
+            id: 'sample_int_2026_10',
+            provider: 'Veridian Fiber',
+            category: 'Internet',
+            billingPeriod: '2026-10',
+            billingCycle: 'monthly',
+            totalAmount: 84.99,
+            lineItems: [
+              { id: 'li_vf_10_1', description: 'Fiber 500 Symmetric Internet', amount: 74.99 },
+              { id: 'li_vf_10_2', description: 'Network Infrastructure Fee', amount: 5.00 },
+              { id: 'li_vf_10_3', description: 'Wi-Fi Gateway Rental Fee', amount: 5.00 }
+            ],
+            notes: 'Sample third consecutive monthly increase + router rental fee',
+            isSample: true,
+            createdAt: '2026-10-15T10:00:00.000Z'
+          },
+          {
+            id: 'sample_ins_2026_07',
+            provider: 'HarborShield Insurance',
+            category: 'Insurance',
+            billingPeriod: '2026-07',
+            billingCycle: 'monthly',
+            totalAmount: 142.00,
+            lineItems: [
+              { id: 'li_hs_7_1', description: 'Comprehensive Auto Policy', amount: 112.00 },
+              { id: 'li_hs_7_2', description: 'Personal Property Rider', amount: 30.00 }
+            ],
+            notes: 'Sample monthly insurance installment',
+            isSample: true,
+            createdAt: '2026-07-20T10:00:00.000Z'
+          },
+          {
+            id: 'sample_ins_2026_08',
+            provider: 'HarborShield Insurance',
+            category: 'Insurance',
+            billingPeriod: '2026-08',
+            billingCycle: 'monthly',
+            totalAmount: 142.00,
+            lineItems: [
+              { id: 'li_hs_8_1', description: 'Comprehensive Auto Policy', amount: 112.00 },
+              { id: 'li_hs_8_2', description: 'Personal Property Rider', amount: 30.00 }
+            ],
+            notes: 'Sample monthly insurance installment',
+            isSample: true,
+            createdAt: '2026-08-20T10:00:00.000Z'
+          },
+          {
+            id: 'sample_ins_2026_09',
+            provider: 'HarborShield Insurance',
+            category: 'Insurance',
+            billingPeriod: '2026-09',
+            billingCycle: 'monthly',
+            totalAmount: 148.00,
+            lineItems: [
+              { id: 'li_hs_9_1', description: 'Comprehensive Auto Policy', amount: 118.00 },
+              { id: 'li_hs_9_2', description: 'Personal Property Rider', amount: 30.00 }
+            ],
+            notes: 'Sample renewal adjustment',
+            isSample: true,
+            createdAt: '2026-09-20T10:00:00.000Z'
+          },
+          {
+            id: 'sample_ins_2026_10',
+            provider: 'HarborShield Insurance',
+            category: 'Insurance',
+            billingPeriod: '2026-10',
+            billingCycle: 'monthly',
+            totalAmount: 173.50,
+            lineItems: [
+              { id: 'li_hs_10_1', description: 'Comprehensive Auto Policy', amount: 137.00 },
+              { id: 'li_hs_10_2', description: 'Personal Property Rider', amount: 30.00 },
+              { id: 'li_hs_10_3', description: 'Paper Statement Admin Fee', amount: 6.50 }
+            ],
+            notes: 'Sample October premium jump + paper statement fee',
+            isSample: true,
+            createdAt: '2026-10-20T10:00:00.000Z'
+          }
+        ];
+      }
+
+      function getSettings() {
+        const defaults = {
+          thresholdPercent: 15,
+          comparisonMode: 'provider',
+          sampleInitialized: false
+        };
+        const saved = readStorage(STORAGE_KEYS.SETTINGS, null);
+        if (!saved || typeof saved !== 'object') return defaults;
+        const tp = Number(saved.thresholdPercent);
+        return {
+          thresholdPercent: Number.isFinite(tp) && tp >= 1 && tp <= 100 ? tp : 15,
+          comparisonMode: saved.comparisonMode === 'category' ? 'category' : 'provider',
+          sampleInitialized: Boolean(saved.sampleInitialized)
+        };
+      }
+
+      function saveSettings(partial) {
+        const next = Object.assign({}, getSettings(), partial);
+        writeStorage(STORAGE_KEYS.SETTINGS, next);
+        return next;
+      }
+
+      function sanitizeBill(b) {
+        if (!b || typeof b !== 'object') return null;
+        const amt = Number(b.totalAmount);
+        if (!Number.isFinite(amt) || amt < 0) return null;
+        if (!b.provider || !/^\d{4}-(0[1-9]|1[0-2])$/.test(String(b.billingPeriod || ''))) return null;
+        const items = Array.isArray(b.lineItems)
+          ? b.lineItems
+              .filter(li => li && String(li.description || '').trim() !== '' && Number.isFinite(Number(li.amount)) && Number(li.amount) >= 0)
+              .map((li, idx) => ({
+                id: String(li.id || ('li_' + idx)),
+                description: String(li.description).trim(),
+                amount: round2(Number(li.amount))
+              }))
+          : [];
+        return {
+          id: String(b.id || ('bill_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7))),
+          provider: String(b.provider).trim(),
+          category: String(b.category || 'Other').trim(),
+          billingPeriod: String(b.billingPeriod),
+          billingCycle: ['monthly', 'quarterly', 'annual', 'one-time'].includes(b.billingCycle) ? b.billingCycle : 'monthly',
+          totalAmount: round2(amt),
+          lineItems: items,
+          notes: String(b.notes || '').trim(),
+          isSample: Boolean(b.isSample),
+          createdAt: String(b.createdAt || new Date().toISOString())
+        };
+      }
+
+      function ensureInitialized() {
+        const settings = getSettings();
+        const rawBills = readStorage(STORAGE_KEYS.BILLS, null);
+        if (!settings.sampleInitialized && rawBills === null) {
+          writeStorage(STORAGE_KEYS.BILLS, getSampleBills());
+          saveSettings({ sampleInitialized: true });
+        }
+      }
+
+      function getBills() {
+        ensureInitialized();
+        const raw = readStorage(STORAGE_KEYS.BILLS, []);
+        if (!Array.isArray(raw)) return [];
+        return raw.map(sanitizeBill).filter(Boolean);
+      }
+
+      function saveBills(bills) {
+        writeStorage(STORAGE_KEYS.BILLS, bills);
+      }
+
+      function getActionsMap() {
+        const raw = readStorage(STORAGE_KEYS.ACTIONS, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+      }
+
+      /* Deterministic Analysis Engine */
+      function analyzeAllBills(bills, settings) {
+        const threshold = Number(settings.thresholdPercent) || 15;
+        const compMode = settings.comparisonMode === 'category' ? 'category' : 'provider';
+
+        const chronological = bills.slice().sort((a, b) => {
+          if (a.billingPeriod !== b.billingPeriod) return a.billingPeriod.localeCompare(b.billingPeriod);
+          return a.createdAt.localeCompare(b.createdAt);
+        });
+
+        const byProvider = {};
+        const byCategory = {};
+        const analysesById = {};
+        const allFindings = [];
+
+        chronological.forEach(bill => {
+          const provKey = bill.provider.toLowerCase().trim();
+          const catKey = bill.category.toLowerCase().trim();
+          const provHistory = byProvider[provKey] || [];
+          const catHistory = byCategory[catKey] || [];
+
+          const prevProviderBill = provHistory.length > 0 ? provHistory[provHistory.length - 1] : null;
+          const prevCategoryBill = catHistory.length > 0 ? catHistory[catHistory.length - 1] : null;
+          const baselineBill = compMode === 'category' ? prevCategoryBill : prevProviderBill;
+
+          let absChange = null;
+          let pctChange = null;
+          let annualizedIncrease = null;
+
+          if (baselineBill) {
+            absChange = round2(bill.totalAmount - baselineBill.totalAmount);
+            if (baselineBill.totalAmount > 0) {
+              pctChange = round2((absChange / baselineBill.totalAmount) * 100);
+            } else {
+              pctChange = null;
+            }
+            if (absChange > 0 && bill.billingCycle === 'monthly') {
+              annualizedIncrease = round2(absChange * 12);
+            }
+          }
+
+          const billWarnings = [];
+          const duplicateItemIds = new Set();
+          const newFeeItemIds = new Set();
+
+          // 1. Possible Duplicate Line Items within the bill
+          const itemGroups = {};
+          bill.lineItems.forEach(li => {
+            const norm = normalizeDesc(li.description);
+            if (!norm || li.amount <= 0) return;
+            const key = norm + '__' + li.amount.toFixed(2);
+            if (!itemGroups[key]) {
+              itemGroups[key] = { norm, amount: li.amount, items: [] };
+            }
+            itemGroups[key].items.push(li);
+          });
+
+          let duplicateExtraSum = 0;
+          Object.keys(itemGroups).forEach(groupKey => {
+            const grp = itemGroups[groupKey];
+            if (grp.items.length >= 2) {
+              grp.items.forEach(it => duplicateItemIds.add(it.id));
+              const extraAmt = round2((grp.items.length - 1) * grp.amount);
+              duplicateExtraSum = round2(duplicateExtraSum + extraAmt);
+              const finding = {
+                id: 'dup_' + bill.id + '_' + grp.norm.replace(/\s+/g, '_').slice(0, 24),
+                billId: bill.id,
+                provider: bill.provider,
+                category: bill.category,
+                billingPeriod: bill.billingPeriod,
+                isSample: bill.isSample,
+                type: 'possible_duplicate',
+                severity: 'high',
+                badge: 'Possible duplicate',
+                title: 'Repeated charge: ' + grp.items[0].description,
+                explanation: 'Line item "' + grp.items[0].description + '" for ' + fmtCurrency(grp.amount) + ' appears ' + grp.items.length + ' times on this statement with matching normalized description and amount. Verify whether multiple lines/units are covered or if this charge was billed twice.',
+                estimatedSavings: extraAmt
+              };
+              billWarnings.push(finding);
+              allFindings.push(finding);
+            }
+          });
+
+          // 2. Unusual Increase vs Baseline
+          let unusualIncreaseDelta = 0;
+          if (baselineBill && baselineBill.totalAmount > 0 && absChange > 0 && pctChange !== null && pctChange >= threshold) {
+            unusualIncreaseDelta = absChange;
+            const isHigh = pctChange >= threshold * 1.75 || absChange >= 35;
+            const finding = {
+              id: 'inc_' + bill.id,
+              billId: bill.id,
+              provider: bill.provider,
+              category: bill.category,
+              billingPeriod: bill.billingPeriod,
+              isSample: bill.isSample,
+              type: 'unusual_increase',
+              severity: isHigh ? 'high' : 'warning',
+              badge: 'Review recommended',
+              title: 'Unusual increase of +' + pctChange.toFixed(1) + '% (' + fmtSignedCurrency(absChange) + ')',
+              explanation: 'Statement rose from ' + fmtCurrency(baselineBill.totalAmount) + ' (' + baselineBill.billingPeriod + ', ' + baselineBill.provider + ') to ' + fmtCurrency(bill.totalAmount) + ', exceeding your ' + threshold + '% alert threshold.' + (annualizedIncrease ? ' If this monthly rate continues, it adds an estimated ' + fmtCurrency(annualizedIncrease) + ' over 12 months.' : ''),
+              estimatedSavings: absChange
+            };
+            billWarnings.push(finding);
+            allFindings.push(finding);
+          }
+
+          // 3. New / Unexpected Fee Detection vs Previous Provider Bill
+          let newFeeSum = 0;
+          if (prevProviderBill && prevProviderBill.lineItems.length > 0 && bill.lineItems.length > 0) {
+            const prevNormSet = new Set(prevProviderBill.lineItems.map(li => normalizeDesc(li.description)));
+            const feePattern = /\b(fee|surcharge|rental|protection|admin|administrative|recovery|maintenance|infrastructure|gateway|router|late|adjustment|addon|add on|rider)\b/i;
+            const seenNewNorms = new Set();
+
+            bill.lineItems.forEach(li => {
+              const norm = normalizeDesc(li.description);
+              if (!norm || li.amount <= 0 || duplicateItemIds.has(li.id)) return;
+              if (!prevNormSet.has(norm) && feePattern.test(li.description)) {
+                newFeeItemIds.add(li.id);
+                if (!seenNewNorms.has(norm)) {
+                  seenNewNorms.add(norm);
+                  newFeeSum = round2(newFeeSum + li.amount);
+                  const finding = {
+                    id: 'fee_' + bill.id + '_' + norm.replace(/\s+/g, '_').slice(0, 24),
+                    billId: bill.id,
+                    provider: bill.provider,
+                    category: bill.category,
+                    billingPeriod: bill.billingPeriod,
+                    isSample: bill.isSample,
+                    type: 'unexpected_fee',
+                    severity: 'warning',
+                    badge: 'Review recommended',
+                    title: 'New line item: ' + li.description + ' (' + fmtCurrency(li.amount) + ')',
+                    explanation: 'Charge "' + li.description + '" (' + fmtCurrency(li.amount) + ') was not present on your previous ' + bill.provider + ' statement (' + prevProviderBill.billingPeriod + '). Check whether an optional add-on, equipment fee, or surcharge was added.',
+                    estimatedSavings: li.amount
+                  };
+                  billWarnings.push(finding);
+                  allFindings.push(finding);
+                }
+              }
+            });
+          }
+
+          // 4. Consecutive Recurring Price Increase Streak (same provider, emitted at streak peak)
+          const allProvBills = chronological.filter(x => x.provider.toLowerCase().trim() === provKey);
+          const myProvIdx = allProvBills.findIndex(x => x.id === bill.id);
+          const nextProvBill = myProvIdx !== -1 && myProvIdx + 1 < allProvBills.length ? allProvBills[myProvIdx + 1] : null;
+          const isSupersededInStreak = Boolean(nextProvBill && nextProvBill.totalAmount > bill.totalAmount);
+
+          const fullProvChain = provHistory.concat([bill]);
+          let streak = 0;
+          for (let i = fullProvChain.length - 1; i >= 1; i--) {
+            if (fullProvChain[i].totalAmount > fullProvChain[i - 1].totalAmount) {
+              streak++;
+            } else {
+              break;
+            }
+          }
+          let recurringDelta = 0;
+          if (streak >= 2 && !isSupersededInStreak) {
+            const startBill = fullProvChain[fullProvChain.length - 1 - streak];
+            const cumDiff = round2(bill.totalAmount - startBill.totalAmount);
+            const cumPct = startBill.totalAmount > 0 ? round2((cumDiff / startBill.totalAmount) * 100) : null;
+            recurringDelta = round2(bill.totalAmount - prevProviderBill.totalAmount);
+            const finding = {
+              id: 'rec_' + bill.id,
+              billId: bill.id,
+              provider: bill.provider,
+              category: bill.category,
+              billingPeriod: bill.billingPeriod,
+              isSample: bill.isSample,
+              type: 'recurring_increase',
+              severity: 'warning',
+              badge: 'Recurring increase',
+              title: streak + ' consecutive increases from ' + bill.provider,
+              explanation: bill.provider + ' statements increased for ' + streak + ' consecutive periods (' + startBill.billingPeriod + ' ' + fmtCurrency(startBill.totalAmount) + ' → ' + bill.billingPeriod + ' ' + fmtCurrency(bill.totalAmount) + '), a cumulative rise of ' + fmtSignedCurrency(cumDiff) + (cumPct !== null ? ' (+' + cumPct.toFixed(1) + '%).' : '.'),
+              estimatedSavings: cumDiff
+            };
+            billWarnings.push(finding);
+            allFindings.push(finding);
+          }
+
+          // De-duplicated bill-level reviewable delta
+          const lineLevelFlagged = round2(duplicateExtraSum + newFeeSum);
+          const dedupBillSavings = billWarnings.length > 0
+            ? Math.min(bill.totalAmount, Math.max(unusualIncreaseDelta, lineLevelFlagged, recurringDelta))
+            : 0;
+
+          analysesById[bill.id] = {
+            bill,
+            baselineBill,
+            prevProviderBill,
+            absChange,
+            pctChange,
+            annualizedIncrease,
+            warnings: billWarnings,
+            duplicateItemIds,
+            newFeeItemIds,
+            streak,
+            dedupBillSavings: round2(dedupBillSavings)
+          };
+
+          provHistory.push(bill);
+          byProvider[provKey] = provHistory;
+          catHistory.push(bill);
+          byCategory[catKey] = catHistory;
+        });
+
+        // Deduplicate recurring findings in Action Center so only latest bill in an ongoing provider streak is open, or keep all bill warnings accurate:
+        const actionsMap = getActionsMap();
+        let totalDedupSavings = 0;
+        let flaggedBillsCount = 0;
+        let duplicateItemsCount = 0;
+
+        Object.values(analysesById).forEach(an => {
+          if (an.warnings.length > 0) flaggedBillsCount++;
+          an.warnings.forEach(w => {
+            if (w.type === 'possible_duplicate') duplicateItemsCount++;
+          });
+          // Only include in active reviewable delta if at least one warning on this bill is not dismissed
+          const hasActiveWarning = an.warnings.some(w => {
+            const st = actionsMap[w.id] && actionsMap[w.id].status;
+            return st !== 'dismissed' && st !== 'resolved';
+          });
+          if (hasActiveWarning) {
+            totalDedupSavings = round2(totalDedupSavings + an.dedupBillSavings);
+          }
+        });
+
+        const openFindingsCount = allFindings.filter(f => {
+          const st = actionsMap[f.id] && actionsMap[f.id].status;
+          return !st || st === 'unreviewed' || st === 'reviewed';
+        }).length;
+
+        return {
+          analysesById,
+          allFindings,
+          summary: {
+            totalBills: bills.length,
+            sampleBills: bills.filter(b => b.isSample).length,
+            userBills: bills.filter(b => !b.isSample).length,
+            flaggedBillsCount,
+            duplicateItemsCount,
+            totalDedupSavings,
+            openFindingsCount
+          }
+        };
+      }
+
+      /* =====================================================================
+         PAGE UI STATE & CONTROLLER — billtrap.html
+         ===================================================================== */
+      let selectedInspectorBillId = null;
+      let pendingModalAction = null;
+
+      // DOM Elements
+      const billForm = document.getElementById('billForm');
+      const editingBillIdInput = document.getElementById('editingBillId');
+      const formHeading = document.getElementById('formHeading');
+      const resetFormBtn = document.getElementById('resetFormBtn');
+      const submitBillBtn = document.getElementById('submitBillBtn');
+      const clearFormFieldsBtn = document.getElementById('clearFormFieldsBtn');
+      const providerInput = document.getElementById('providerInput');
+      const categoryInput = document.getElementById('categoryInput');
+      const periodInput = document.getElementById('periodInput');
+      const cycleInput = document.getElementById('cycleInput');
+      const totalAmountInput = document.getElementById('totalAmountInput');
+      const notesInput = document.getElementById('notesInput');
+      const lineItemsContainer = document.getElementById('lineItemsContainer');
+      const addLineItemBtn = document.getElementById('addLineItemBtn');
+      const lineItemsSumDisplay = document.getElementById('lineItemsSumDisplay');
+      const useLineSumBtn = document.getElementById('useLineSumBtn');
+
+      const thresholdSlider = document.getElementById('thresholdSlider');
+      const thresholdInput = document.getElementById('thresholdInput');
+      const compModeBtns = document.querySelectorAll('[data-comp-mode]');
+
+      const searchInput = document.getElementById('searchInput');
+      const filterCategory = document.getElementById('filterCategory');
+      const filterFlagStatus = document.getElementById('filterFlagStatus');
+      const sortOrder = document.getElementById('sortOrder');
+      const billsListContainer = document.getElementById('billsListContainer');
+      const filteredCountLabel = document.getElementById('filteredCountLabel');
+
+      const inspectorPanel = document.getElementById('inspectorPanel');
+      const inspectorTitle = document.getElementById('inspectorTitle');
+      const inspectorMeta = document.getElementById('inspectorMeta');
+      const inspectorMetrics = document.getElementById('inspectorMetrics');
+      const inspectorWarningsBox = document.getElementById('inspectorWarningsBox');
+      const inspectorLineItemsBox = document.getElementById('inspectorLineItemsBox');
+      const closeInspectorBtn = document.getElementById('closeInspectorBtn');
+
+      // Toast helper
+      function showToast(message) {
+        const region = document.getElementById('toastRegion');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = '<span>' + escapeHtml(message) + '</span>';
+        region.appendChild(toast);
+        setTimeout(() => {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 3400);
+      }
+
+      // Modal helper
+      function openModal(opts) {
+        const overlay = document.getElementById('confirmModal');
+        document.getElementById('modalTitle').textContent = opts.title || 'Confirm';
+        document.getElementById('modalMessage').textContent = opts.message || '';
+        document.getElementById('modalExtraContent').innerHTML = opts.extraHtml || '';
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+        confirmBtn.textContent = opts.confirmLabel || 'Confirm';
+        confirmBtn.className = 'btn ' + (opts.confirmClass || 'btn-danger');
+        cancelBtn.style.display = opts.hideCancel ? 'none' : 'inline-flex';
+        pendingModalAction = opts.onConfirm || null;
+        overlay.classList.add('open');
+        confirmBtn.focus();
+      }
+
+      function closeModal() {
+        document.getElementById('confirmModal').classList.remove('open');
+        pendingModalAction = null;
+      }
+
+      document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+      document.getElementById('modalConfirmBtn').addEventListener('click', function () {
+        const fn = pendingModalAction;
+        closeModal();
+        if (typeof fn === 'function') fn();
+      });
+      document.getElementById('confirmModal').addEventListener('click', function (e) {
+        if (e.target === this) closeModal();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeModal();
+          closeMobileSidebar();
+        }
+      });
+
+      // Mobile drawer
+      function closeMobileSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarBackdrop').classList.remove('open');
+      }
+      document.getElementById('mobileMenuBtn').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarBackdrop').classList.toggle('open');
+      });
+      document.getElementById('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+
+      // Default Billing Period to 2026-10
+      function getDefaultMonth() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        return y + '-' + m;
+      }
+
+      // Line Items Builder
+      function addLineItemRow(desc, amount) {
+        const row = document.createElement('div');
+        row.className = 'line-item-row';
+        row.innerHTML =
+          '<input type="text" class="input li-desc" placeholder="Charge description (e.g., Router Fee)" value="' + escapeHtml(desc || '') + '" aria-label="Charge description" />' +
+          '<input type="number" class="input tabular li-amt" min="0" step="0.01" placeholder="0.00" value="' + (amount !== undefined && amount !== '' ? escapeHtml(amount) : '') + '" aria-label="Charge amount" />' +
+          '<button type="button" class="remove-item-btn" title="Remove charge row" aria-label="Remove charge row">&times;</button>';
+
+        row.querySelector('.remove-item-btn').addEventListener('click', function () {
+          row.remove();
+          if (lineItemsContainer.children.length === 0) {
+            addLineItemRow('', '');
+          }
+          updateLineItemsSum();
+        });
+
+        row.querySelector('.li-amt').addEventListener('input', updateLineItemsSum);
+        lineItemsContainer.appendChild(row);
+        updateLineItemsSum();
+      }
+
+      function updateLineItemsSum() {
+        let sum = 0;
+        lineItemsContainer.querySelectorAll('.li-amt').forEach(inp => {
+          const val = parseFloat(inp.value);
+          if (Number.isFinite(val) && val > 0) sum += val;
+        });
+        lineItemsSumDisplay.textContent = fmtCurrency(round2(sum));
+        return round2(sum);
+      }
+
+      addLineItemBtn.addEventListener('click', function () {
+        addLineItemRow('', '');
+      });
+
+      useLineSumBtn.addEventListener('click', function () {
+        const sum = updateLineItemsSum();
+        totalAmountInput.value = sum.toFixed(2);
+        clearFieldErrors();
+      });
+
+      function clearFieldErrors() {
+        ['providerError', 'periodError', 'amountError', 'lineItemsError'].forEach(id => {
+          const el = document.getElementById(id);
+          el.textContent = '';
+          el.classList.remove('visible');
+        });
+      }
+
+      function setFieldError(id, msg) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.classList.add('visible');
+      }
+
+      function resetFormToNew() {
+        editingBillIdInput.value = '';
+        formHeading.textContent = 'Add Statement';
+        submitBillBtn.textContent = 'Save & Analyze Bill';
+        resetFormBtn.style.display = 'none';
+        providerInput.value = '';
+        categoryInput.value = 'Electricity';
+        periodInput.value = getDefaultMonth();
+        cycleInput.value = 'monthly';
+        totalAmountInput.value = '';
+        notesInput.value = '';
+        lineItemsContainer.innerHTML = '';
+        addLineItemRow('', '');
+        addLineItemRow('', '');
+        clearFieldErrors();
+      }
+
+      resetFormBtn.addEventListener('click', resetFormToNew);
+      clearFormFieldsBtn.addEventListener('click', resetFormToNew);
+
+      function loadBillIntoForm(billId) {
+        const bills = getBills();
+        const target = bills.find(b => b.id === billId);
+        if (!target) return;
+
+        editingBillIdInput.value = target.id;
+        formHeading.textContent = 'Edit Statement';
+        submitBillBtn.textContent = 'Update Statement';
+        resetFormBtn.style.display = 'inline-flex';
+
+        providerInput.value = target.provider;
+        categoryInput.value = target.category;
+        periodInput.value = target.billingPeriod;
+        cycleInput.value = target.billingCycle;
+        totalAmountInput.value = target.totalAmount.toFixed(2);
+        notesInput.value = target.notes || '';
+
+        lineItemsContainer.innerHTML = '';
+        if (target.lineItems.length > 0) {
+          target.lineItems.forEach(li => addLineItemRow(li.description, li.amount.toFixed(2)));
+        } else {
+          addLineItemRow('', '');
+        }
+        clearFieldErrors();
+        providerInput.focus();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      billForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        clearFieldErrors();
+
+        const provider = providerInput.value.trim();
+        const category = categoryInput.value;
+        const billingPeriod = periodInput.value.trim();
+        const billingCycle = cycleInput.value;
+        const rawTotal = totalAmountInput.value.trim();
+        const totalAmount = Number(rawTotal);
+        const notes = notesInput.value.trim();
+
+        let hasError = false;
+        if (!provider) {
+          setFieldError('providerError', 'Enter a service provider name.');
+          hasError = true;
+        }
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(billingPeriod)) {
+          setFieldError('periodError', 'Enter a valid YYYY-MM billing period.');
+          hasError = true;
+        } else {
+          const yr = Number(billingPeriod.slice(0, 4));
+          if (yr < 1990 || yr > 2099) {
+            setFieldError('periodError', 'Billing year must be between 1990 and 2099.');
+            hasError = true;
+          }
+        }
+        if (rawTotal === '' || !Number.isFinite(totalAmount)) {
+          setFieldError('amountError', 'Enter a valid numeric statement total.');
+          hasError = true;
+        } else if (totalAmount < 0) {
+          setFieldError('amountError', 'Statement total cannot be negative.');
+          hasError = true;
+        } else if (totalAmount > 1000000) {
+          setFieldError('amountError', 'Statement total must be $1,000,000 or less.');
+          hasError = true;
+        }
+
+        const parsedLineItems = [];
+        const rows = lineItemsContainer.querySelectorAll('.line-item-row');
+        rows.forEach((row, idx) => {
+          const desc = row.querySelector('.li-desc').value.trim();
+          const amtStr = row.querySelector('.li-amt').value.trim();
+          if (desc === '' && amtStr === '') return;
+          if (desc === '' && amtStr !== '') {
+            setFieldError('lineItemsError', 'Add a description for every charge row that has an amount.');
+            hasError = true;
+            return;
+          }
+          const amt = amtStr === '' ? 0 : Number(amtStr);
+          if (!Number.isFinite(amt) || amt < 0) {
+            setFieldError('lineItemsError', 'Individual charge amounts must be zero or positive numbers.');
+            hasError = true;
+            return;
+          }
+          parsedLineItems.push({
+            id: 'li_' + Date.now() + '_' + idx,
+            description: desc,
+            amount: round2(amt)
+          });
+        });
+
+        if (hasError) return;
+
+        const bills = getBills();
+        const editingId = editingBillIdInput.value;
+
+        if (editingId) {
+          const idx = bills.findIndex(b => b.id === editingId);
+          if (idx !== -1) {
+            bills[idx] = Object.assign({}, bills[idx], {
+              provider,
+              category,
+              billingPeriod,
+              billingCycle,
+              totalAmount: round2(totalAmount),
+              lineItems: parsedLineItems,
+              notes,
+              isSample: false
+            });
+            saveBills(bills);
+            selectedInspectorBillId = editingId;
+            resetFormToNew();
+            renderAll();
+            showToast('Updated statement for ' + provider + ' (' + billingPeriod + ').');
+            return;
+          }
+        }
+
+        const newBill = {
+          id: 'bill_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          provider,
+          category,
+          billingPeriod,
+          billingCycle,
+          totalAmount: round2(totalAmount),
+          lineItems: parsedLineItems,
+          notes,
+          isSample: false,
+          createdAt: new Date().toISOString()
+        };
+
+        bills.push(newBill);
+        saveBills(bills);
+        selectedInspectorBillId = newBill.id;
+        resetFormToNew();
+        renderAll();
+        showToast('Saved and analyzed ' + provider + ' (' + billingPeriod + ').');
+      });
+
+      // Threshold & Comparison Mode Controls
+      function applyThresholdValue(val) {
+        const num = Math.max(1, Math.min(100, Math.round(Number(val) || 15)));
+        thresholdSlider.value = String(Math.min(50, Math.max(5, num)));
+        thresholdInput.value = String(num);
+        saveSettings({ thresholdPercent: num });
+        renderAll();
+      }
+
+      thresholdSlider.addEventListener('input', function () {
+        applyThresholdValue(this.value);
+      });
+
+      thresholdInput.addEventListener('change', function () {
+        applyThresholdValue(this.value);
+      });
+
+      compModeBtns.forEach(btn => {
+        btn.addEventListener('click', function () {
+          const mode = this.getAttribute('data-comp-mode');
+          saveSettings({ comparisonMode: mode });
+          renderAll();
+        });
+      });
+
+      // Sample Data & Privacy Controls
+      document.getElementById('clearSamplesBtn').addEventListener('click', function () {
+        const bills = getBills();
+        const sampleCount = bills.filter(b => b.isSample).length;
+        if (sampleCount === 0) {
+          showToast('No sample bills are currently loaded.');
+          return;
+        }
+        openModal({
+          title: 'Clear Sample Data?',
+          message: 'This removes all ' + sampleCount + ' fictional sample bills while keeping any statements you added yourself. You can restore sample data anytime.',
+          confirmLabel: 'Clear Sample Bills',
+          confirmClass: 'btn-danger',
+          onConfirm: function () {
+            const remaining = getBills().filter(b => !b.isSample);
+            saveBills(remaining);
+            if (selectedInspectorBillId && !remaining.some(b => b.id === selectedInspectorBillId)) {
+              selectedInspectorBillId = null;
+            }
+            renderAll();
+            showToast('Cleared sample bills.');
+          }
+        });
+      });
+
+      document.getElementById('restoreSamplesBtn').addEventListener('click', function () {
+        const currentUserBills = getBills().filter(b => !b.isSample);
+        const merged = currentUserBills.concat(getSampleBills());
+        saveBills(merged);
+        saveSettings({ sampleInitialized: true });
+        renderAll();
+        showToast('Restored 18 sample statements across Electricity, Mobile, Internet, and Insurance.');
+      });
+
+      document.getElementById('openPrivacyModalBtn').addEventListener('click', function () {
+        const s = getBills();
+        openModal({
+          title: 'Browser-Local Data & Privacy',
+          message: 'BILLTRAP stores your statements, settings, and review notes locally in your browser using localStorage. No bank credentials, card numbers, or external servers are used.',
+          extraHtml:
+            '<div style="font-size:13px;color:var(--text-secondary);background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:8px;padding:12px 14px;margin-bottom:18px;line-height:1.55;">' +
+            '<strong>Important:</strong> Browser storage is not a cloud backup. Clearing your browser site data or using a private window may erase unexported records. Currently storing <strong>' + s.length + ' statements</strong>.' +
+            '</div>',
+          confirmLabel: 'Got It',
+          confirmClass: 'btn-primary',
+          hideCancel: true
+        });
+      });
+
+      // Search & Filter Listeners
+      [searchInput, filterCategory, filterFlagStatus, sortOrder].forEach(el => {
+        el.addEventListener('input', renderAll);
+        el.addEventListener('change', renderAll);
+      });
+
+      closeInspectorBtn.addEventListener('click', function () {
+        selectedInspectorBillId = null;
+        renderAll();
+      });
+
+      function renderInspector(analysisResult) {
+        if (!selectedInspectorBillId || !analysisResult.analysesById[selectedInspectorBillId]) {
+          inspectorPanel.style.display = 'none';
+          return;
+        }
+
+        const an = analysisResult.analysesById[selectedInspectorBillId];
+        const b = an.bill;
+        const prev = an.baselineBill;
+        const settings = getSettings();
+
+        inspectorPanel.style.display = 'block';
+        inspectorTitle.textContent = b.provider + ' — ' + b.billingPeriod;
+        inspectorMeta.innerHTML =
+          '<span>' + escapeHtml(b.category) + '</span>' +
+          '<span aria-hidden="true">·</span>' +
+          '<span style="text-transform:capitalize;">' + escapeHtml(b.billingCycle) + '</span>' +
+          (b.isSample ? '<span aria-hidden="true">·</span><span class="text-amber">Sample data</span>' : '<span aria-hidden="true">·</span><span>User entry</span>');
+
+        const deltaColor = an.absChange === null ? '' : (an.absChange > 0 ? 'text-amber' : (an.absChange < 0 ? 'text-lime' : ''));
+        const pctStr = an.pctChange !== null
+          ? (an.pctChange > 0 ? '+' : '') + an.pctChange.toFixed(1) + '%'
+          : (prev && prev.totalAmount === 0 ? 'N/A ($0 prior)' : 'No prior bill');
+
+        inspectorMetrics.innerHTML =
+          '<div>' +
+            '<div class="comp-stat-label">Current Total</div>' +
+            '<div class="comp-stat-val">' + fmtCurrency(b.totalAmount) + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="comp-stat-label">' + (settings.comparisonMode === 'category' ? 'Prior Category Bill' : 'Prior Provider Bill') + '</div>' +
+            '<div class="comp-stat-val">' + (prev ? fmtCurrency(prev.totalAmount) : 'None') + '</div>' +
+            (prev ? '<div style="font-size:11.5px;color:var(--text-muted);">' + escapeHtml(prev.provider) + ' · ' + escapeHtml(prev.billingPeriod) + '</div>' : '') +
+          '</div>' +
+          '<div>' +
+            '<div class="comp-stat-label">Change ($ / %)</div>' +
+            '<div class="comp-stat-val ' + deltaColor + '">' + (an.absChange !== null ? fmtSignedCurrency(an.absChange) : '—') + '</div>' +
+            '<div class="tabular" style="font-size:12px;color:var(--text-secondary);">' + escapeHtml(pctStr) + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="comp-stat-label">Annualized Increase Est.</div>' +
+            '<div class="comp-stat-val ' + (an.annualizedIncrease ? 'text-amber' : '') + '">' + (an.annualizedIncrease ? '+' + fmtCurrency(an.annualizedIncrease) + '/yr' : '—') + '</div>' +
+            '<div style="font-size:11.5px;color:var(--text-muted);">' + (an.annualizedIncrease ? 'Monthly delta × 12' : 'Applies to monthly increases') + '</div>' +
+          '</div>';
+
+        if (an.warnings.length > 0) {
+          inspectorWarningsBox.innerHTML =
+            '<div style="display:flex;flex-direction:column;gap:8px;">' +
+            an.warnings.map(w => {
+              const colorCls = w.severity === 'high' ? 'text-red' : 'text-amber';
+              return (
+                '<div style="padding:10px 12px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border-subtle);font-size:13px;">' +
+                  '<strong class="' + colorCls + '">' + escapeHtml(w.badge) + ':</strong> ' +
+                  '<span>' + escapeHtml(w.explanation) + '</span>' +
+                '</div>'
+              );
+            }).join('') +
+            '</div>';
+        } else {
+          inspectorWarningsBox.innerHTML =
+            '<div style="padding:10px 12px;border-radius:8px;background:var(--accent-lime-soft);color:var(--accent-lime);font-size:13px;">' +
+              'No unusual increases or duplicate line items detected under current threshold (' + settings.thresholdPercent + '%).' +
+            '</div>';
+        }
+
+        if (b.lineItems.length > 0) {
+          inspectorLineItemsBox.innerHTML =
+            '<table class="line-table" aria-label="Statement Line Items">' +
+              '<thead><tr><th>Charge Description</th><th>Flag</th><th class="num">Amount</th></tr></thead>' +
+              '<tbody>' +
+              b.lineItems.map(li => {
+                const isDup = an.duplicateItemIds.has(li.id);
+                const isFee = an.newFeeItemIds.has(li.id);
+                const rowCls = isDup ? 'flagged-dup' : (isFee ? 'flagged-fee' : '');
+                const flagText = isDup
+                  ? '<span class="text-red">Possible duplicate</span>'
+                  : (isFee ? '<span class="text-amber">New charge vs prior bill</span>' : '<span class="text-muted">Standard</span>');
+                return (
+                  '<tr class="' + rowCls + '">' +
+                    '<td>' + escapeHtml(li.description) + '</td>' +
+                    '<td>' + flagText + '</td>' +
+                    '<td class="num">' + fmtCurrency(li.amount) + '</td>' +
+                  '</tr>'
+                );
+              }).join('') +
+              '</tbody>' +
+            '</table>' +
+            '<div style="margin-top:14px;display:flex;justify-content:flex-end;">' +
+              '<a href="./action-center.html?bill=' + encodeURIComponent(b.id) + '" class="btn btn-primary btn-sm">Open in Action Center</a>' +
+            '</div>';
+        } else {
+          inspectorLineItemsBox.innerHTML = '<p style="margin:0;font-size:13px;color:var(--text-secondary);">No itemized charges entered for this statement.</p>';
+        }
+      }
+
+      function renderAll() {
+        const settings = getSettings();
+        const bills = getBills();
+        const result = analyzeAllBills(bills, settings);
+        const sum = result.summary;
+
+        // Sync controls
+        thresholdSlider.value = String(Math.min(50, Math.max(5, settings.thresholdPercent)));
+        thresholdInput.value = String(settings.thresholdPercent);
+        compModeBtns.forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-comp-mode') === settings.comparisonMode);
+        });
+
+        // Sync Sidebar & Metrics
+        document.getElementById('navBillCount').textContent = String(sum.totalBills);
+        document.getElementById('navOpenFindings').textContent = String(sum.openFindingsCount);
+        document.getElementById('sidebarSampleIndicator').textContent = sum.sampleBills > 0 ? (sum.sampleBills + ' Sample') : 'Local';
+
+        document.getElementById('metricTotalBills').textContent = String(sum.totalBills);
+        document.getElementById('metricSampleSplit').textContent = sum.userBills + ' user · ' + sum.sampleBills + ' sample';
+        document.getElementById('metricFlaggedBills').textContent = String(sum.flaggedBillsCount);
+        document.getElementById('metricThresholdNote').textContent = 'Using ' + settings.thresholdPercent + '% increase threshold';
+        document.getElementById('metricDuplicateCount').textContent = String(sum.duplicateItemsCount);
+        document.getElementById('metricPotentialSavings').textContent = fmtCurrency(sum.totalDedupSavings);
+
+        renderInspector(result);
+
+        // Filter & Sort Bills
+        const q = searchInput.value.trim().toLowerCase();
+        const cat = filterCategory.value;
+        const flagFilter = filterFlagStatus.value;
+        const sort = sortOrder.value;
+
+        let filtered = bills.map(b => result.analysesById[b.id]).filter(an => {
+          const b = an.bill;
+          if (cat !== 'ALL' && b.category !== cat) return false;
+          if (flagFilter === 'FLAGGED' && an.warnings.length === 0) return false;
+          if (flagFilter === 'DUPLICATES' && !an.warnings.some(w => w.type === 'possible_duplicate')) return false;
+          if (flagFilter === 'INCREASES' && !an.warnings.some(w => w.type === 'unusual_increase' || w.type === 'recurring_increase')) return false;
+          if (flagFilter === 'SAMPLE' && !b.isSample) return false;
+          if (flagFilter === 'USER' && b.isSample) return false;
+
+          if (q) {
+            const hay = [
+              b.provider,
+              b.category,
+              b.billingPeriod,
+              b.notes,
+              b.lineItems.map(li => li.description).join(' ')
+            ].join(' ').toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        filtered.sort((a, b) => {
+          if (sort === 'period_asc') return a.bill.billingPeriod.localeCompare(b.bill.billingPeriod) || a.bill.provider.localeCompare(b.bill.provider);
+          if (sort === 'amount_desc') return b.bill.totalAmount - a.bill.totalAmount;
+          if (sort === 'amount_asc') return a.bill.totalAmount - b.bill.totalAmount;
+          if (sort === 'pct_desc') {
+            const pa = a.pctChange !== null ? a.pctChange : -999999;
+            const pb = b.pctChange !== null ? b.pctChange : -999999;
+            return pb - pa;
+          }
+          return b.bill.billingPeriod.localeCompare(a.bill.billingPeriod) || a.bill.provider.localeCompare(b.bill.provider);
+        });
+
+        filteredCountLabel.textContent = filtered.length + ' of ' + bills.length + ' shown';
+
+        if (bills.length === 0) {
+          billsListContainer.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Statements Saved Yet</h3>' +
+              '<p>Add your first electricity, mobile, internet, or insurance bill using the form on the left, or load the fictional sample dataset to explore automated checks.</p>' +
+              '<button type="button" class="btn btn-primary" id="emptyRestoreBtn">Load Sample Bills</button>' +
+            '</div>';
+          document.getElementById('emptyRestoreBtn').addEventListener('click', function () {
+            document.getElementById('restoreSamplesBtn').click();
+          });
+          return;
+        }
+
+        if (filtered.length === 0) {
+          billsListContainer.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Matching Statements</h3>' +
+              '<p>No saved bills match your current search or filter criteria.</p>' +
+              '<button type="button" class="btn btn-secondary" id="clearFiltersBtn">Reset Filters</button>' +
+            '</div>';
+          document.getElementById('clearFiltersBtn').addEventListener('click', function () {
+            searchInput.value = '';
+            filterCategory.value = 'ALL';
+            filterFlagStatus.value = 'ALL';
+            renderAll();
+          });
+          return;
+        }
+
+        billsListContainer.innerHTML = filtered.map(an => {
+          const b = an.bill;
+          const isSelected = selectedInspectorBillId === b.id;
+
+          let deltaHtml = '<div class="bill-delta text-muted">Baseline bill</div>';
+          if (an.baselineBill) {
+            const cls = an.absChange > 0
+              ? (an.pctChange !== null && an.pctChange >= settings.thresholdPercent ? 'text-amber' : 'text-muted')
+              : (an.absChange < 0 ? 'text-lime' : 'text-muted');
+            const pctPart = an.pctChange !== null ? ' (' + (an.pctChange > 0 ? '+' : '') + an.pctChange.toFixed(1) + '%)' : '';
+            deltaHtml = '<div class="bill-delta ' + cls + '">' + fmtSignedCurrency(an.absChange) + escapeHtml(pctPart) + ' vs ' + escapeHtml(an.baselineBill.billingPeriod) + '</div>';
+          }
+
+          const warningsHtml = an.warnings.length > 0
+            ? '<div class="warnings-list">' +
+                an.warnings.map(w => {
+                  const iconColor = w.severity === 'high' ? '#f87171' : '#fbbf24';
+                  const textCls = w.severity === 'high' ? 'text-red' : 'text-amber';
+                  return (
+                    '<div class="warning-item">' +
+                      '<svg class="warning-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="2.2" aria-hidden="true">' +
+                        '<path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>' +
+                      '</svg>' +
+                      '<div><span class="warning-label ' + textCls + '">' + escapeHtml(w.badge) + '</span>' + escapeHtml(w.explanation) + '</div>' +
+                    '</div>'
+                  );
+                }).join('') +
+              '</div>'
+            : '';
+
+          return (
+            '<article class="bill-row' + (isSelected ? ' selected' : '') + '">' +
+              '<div class="bill-row-top">' +
+                '<div>' +
+                  '<h3 class="bill-title">' + escapeHtml(b.provider) + '</h3>' +
+                  '<div class="bill-meta">' +
+                    '<span>' + escapeHtml(b.category) + '</span>' +
+                    '<span aria-hidden="true">·</span>' +
+                    '<span class="tabular">' + escapeHtml(b.billingPeriod) + '</span>' +
+                    '<span aria-hidden="true">·</span>' +
+                    '<span style="text-transform:capitalize;">' + escapeHtml(b.billingCycle) + '</span>' +
+                    '<span aria-hidden="true">·</span>' +
+                    '<span>' + b.lineItems.length + ' line ' + (b.lineItems.length === 1 ? 'item' : 'items') + '</span>' +
+                    (b.isSample ? '<span aria-hidden="true">·</span><span class="text-amber">Sample data</span>' : '') +
+                  '</div>' +
+                '</div>' +
+                '<div class="bill-amount-col">' +
+                  '<div class="bill-amount">' + fmtCurrency(b.totalAmount) + '</div>' +
+                  deltaHtml +
+                '</div>' +
+              '</div>' +
+              warningsHtml +
+              '<div class="bill-actions-row">' +
+                '<div class="bill-btn-group">' +
+                  '<button type="button" class="btn btn-secondary btn-sm js-inspect-btn" data-id="' + escapeHtml(b.id) + '">' + (isSelected ? 'Viewing Comparison' : 'Compare & Inspect') + '</button>' +
+                  '<button type="button" class="btn btn-secondary btn-sm js-edit-btn" data-id="' + escapeHtml(b.id) + '">Edit</button>' +
+                  '<button type="button" class="btn btn-danger btn-sm js-delete-btn" data-id="' + escapeHtml(b.id) + '">Delete</button>' +
+                '</div>' +
+                (an.warnings.length > 0
+                  ? '<a href="./action-center.html?bill=' + encodeURIComponent(b.id) + '" class="link-btn">Investigate in Action Center &rarr;</a>'
+                  : '') +
+              '</div>' +
+            '</article>'
+          );
+        }).join('');
+
+        // Wire row buttons
+        billsListContainer.querySelectorAll('.js-inspect-btn').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const id = this.getAttribute('data-id');
+            selectedInspectorBillId = selectedInspectorBillId === id ? null : id;
+            renderAll();
+            if (selectedInspectorBillId) {
+              inspectorPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          });
+        });
+
+        billsListContainer.querySelectorAll('.js-edit-btn').forEach(btn => {
+          btn.addEventListener('click', function () {
+            loadBillIntoForm(this.getAttribute('data-id'));
+          });
+        });
+
+        billsListContainer.querySelectorAll('.js-delete-btn').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const id = this.getAttribute('data-id');
+            const target = getBills().find(x => x.id === id);
+            if (!target) return;
+            openModal({
+              title: 'Delete Statement?',
+              message: 'Permanently delete ' + target.provider + ' (' + target.billingPeriod + ', ' + fmtCurrency(target.totalAmount) + ')? This action cannot be undone.',
+              confirmLabel: 'Delete Bill',
+              confirmClass: 'btn-danger',
+              onConfirm: function () {
+                const updated = getBills().filter(x => x.id !== id);
+                saveBills(updated);
+                if (selectedInspectorBillId === id) selectedInspectorBillId = null;
+                if (editingBillIdInput.value === id) resetFormToNew();
+                renderAll();
+                showToast('Deleted ' + target.provider + ' (' + target.billingPeriod + ').');
+              }
+            });
+          });
+        });
+      }
+
+      // Initialize page
+      ensureInitialized();
+      resetFormToNew();
+
+      // Pre-open inspector on first flagged bill so comparison view is immediately demonstrable
+      const initialCheck = analyzeAllBills(getBills(), getSettings());
+      const latestFlagged = getBills()
+        .slice()
+        .sort((a, b) => b.billingPeriod.localeCompare(a.billingPeriod))
+        .find(b => initialCheck.analysesById[b.id] && initialCheck.analysesById[b.id].warnings.length > 0);
+      if (latestFlagged) {
+        selectedInspectorBillId = latestFlagged.id;
+      }
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BILLTRAP — Spending History</title>
+  <meta name="description" content="Track monthly household bill trends, compare spending across categories, spot recurring increases, and export CSV records." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #080d19;
+      --bg-sidebar: #0b1120;
+      --bg-surface: #101829;
+      --bg-elevated: #152036;
+      --bg-input: #0c1322;
+      --border-subtle: rgba(148, 163, 184, 0.12);
+      --border-strong: rgba(148, 163, 184, 0.24);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-lime: #65e87b;
+      --accent-lime-hover: #52dc69;
+      --accent-lime-soft: rgba(101, 232, 123, 0.12);
+      --accent-ink: #051408;
+      --warn-amber: #fbbf24;
+      --warn-amber-soft: rgba(251, 191, 36, 0.12);
+      --danger-red: #f87171;
+      --danger-red-soft: rgba(248, 113, 113, 0.12);
+      --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 6px;
+      --sidebar-w: 256px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+
+    :focus-visible {
+      outline: 2px solid var(--accent-lime);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 22px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .brand-wordmark {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .sidebar-nav {
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-link-inner {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+    }
+
+    .nav-link.active {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    .nav-count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.85;
+    }
+
+    .sidebar-footer {
+      padding: 16px 18px 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .privacy-note {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .sidebar-util-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .sidebar-util-btn:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    /* Mobile Header */
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 56px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.72);
+      z-index: 35;
+    }
+
+    /* Main Area */
+    .main-area {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      min-width: 0;
+      padding: 32px 36px 56px;
+    }
+
+    .workspace-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .page-title-group h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.4vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .page-subtitle {
+      margin: 6px 0 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+      max-width: 68ch;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+      min-height: 40px;
+    }
+
+    .btn-primary {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+    }
+
+    .btn-primary:hover { background: var(--accent-lime-hover); }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      border-color: var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elevated);
+    }
+
+    .btn-danger {
+      background: var(--danger-red-soft);
+      border-color: rgba(248, 113, 113, 0.3);
+      color: var(--danger-red);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12.5px;
+      min-height: 34px;
+    }
+
+    .text-lime { color: var(--accent-lime); }
+    .text-amber { color: var(--warn-amber); }
+    .text-red { color: var(--danger-red); }
+    .text-muted { color: var(--text-secondary); }
+
+    /* Full-Width Segmented Tab Track (fintech trend style) */
+    .trends-tab-track {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .trends-tab-btn {
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .trends-tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .trends-tab-btn.active {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+    }
+
+    /* Two-Column Trend Cards */
+    .charts-split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .panel-sub {
+      margin: 4px 0 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .mini-stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .mini-stat {
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      text-align: center;
+    }
+
+    .mini-stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: block;
+    }
+
+    .mini-stat-value {
+      font-size: 17px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      margin-top: 4px;
+      display: block;
+    }
+
+    .svg-chart-wrap {
+      width: 100%;
+      flex: 1;
+      min-height: 245px;
+      position: relative;
+    }
+
+    .chart-callout-bar {
+      margin-top: 16px;
+      padding: 11px 14px;
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 11px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+      vertical-align: middle;
+    }
+
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .data-table th.num, .data-table td.num {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Category Bars */
+    .cat-bar-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .cat-bar-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cat-bar-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13.5px;
+      gap: 10px;
+    }
+
+    .cat-bar-track {
+      height: 10px;
+      background: var(--bg-input);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .cat-bar-fill {
+      height: 100%;
+      background: var(--accent-lime);
+      border-radius: 5px;
+    }
+
+    /*Recurring Increases Grid */
+    .recurring-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .recurring-card {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Filter Toolbar */
+    .history-filters {
+      display: grid;
+      grid-template-columns: minmax(200px, 1.5fr) repeat(4, minmax(125px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .input, .select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      min-height: 40px;
+    }
+
+    .input:focus, .select:focus {
+      border-color: var(--accent-lime);
+      outline: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 44px 24px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state h3 { margin: 0 0 8px; font-size: 17px; }
+    .empty-state p { margin: 0 auto 20px; color: var(--text-secondary); font-size: 14px; max-width: 48ch; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.78);
+      display: none;
+      place-items: center;
+      padding: 20px;
+      z-index: 60;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.open { display: grid; }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      max-width: 540px;
+      width: 100%;
+      padding: 24px;
+    }
+
+    .modal-card h3 { margin: 0 0 12px; font-size: 18px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .field-error {
+      color: var(--danger-red);
+      font-size: 12.5px;
+      margin-top: 4px;
+    }
+
+    .toast-region {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 80;
+    }
+
+    .toast {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    @media (max-width: 1120px) {
+      .charts-split, .recurring-grid { grid-template-columns: 1fr; }
+      .history-filters { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open { display: block; }
+      .mobile-topbar { display: flex; }
+      .main-area { margin-left: 0; padding: 20px 16px 48px; }
+      .trends-tab-track { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .mini-stats-row, .history-filters, .form-row-2 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mobile-topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="brand-mark" aria-hidden="true">B</div>
+      <span class="brand-wordmark">BILLTRAP</span>
+    </div>
+    <button type="button" class="icon-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary Sidebar">
+      <div class="brand-bar">
+        <div class="brand-mark" aria-hidden="true">B</div>
+        <span class="brand-wordmark">BILLTRAP</span>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Main Pages">
+        <a href="./billtrap.html" class="nav-link">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4" stroke-linecap="round"/>
+            </svg>
+            <span>Bill Analyzer</span>
+          </span>
+          <span class="nav-count" id="navBillCount">0</span>
+        </a>
+        <a href="./history.html" class="nav-link active" aria-current="page">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 14l4-4 4 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Spending History</span>
+          </span>
+        </a>
+        <a href="./action-center.html" class="nav-link">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Action Center</span>
+          </span>
+          <span class="nav-count" id="navOpenFindings">0</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-util-btn" id="openPrivacyModalBtn">
+          <span>Data &amp; Privacy</span>
+          <span class="tabular" id="sidebarSampleIndicator">Local</span>
+        </button>
+        <p class="privacy-note">
+          Bills are saved only in this browser's localStorage. Export CSV backups regularly before clearing browser data.
+        </p>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <div class="workspace-container">
+        <!-- Page Heading -->
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65e87b" stroke-width="2.2" aria-hidden="true">
+                <path d="M3 17l6-6 4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 7h4v4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Spending History &amp; Trends
+            </h1>
+            <p class="page-subtitle">
+              Compare monthly spending across categories, inspect month-over-month changes, estimate annualized cost creep, and export historical CSV records.
+            </p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn btn-secondary" id="exportCsvBtn">Download CSV</button>
+            <a href="./billtrap.html" class="btn btn-primary">+ Add Statement</a>
+          </div>
+        </div>
+
+        <!-- View Mode Segmented Tabs -->
+        <div class="trends-tab-track" role="tablist" aria-label="Spending Analytics Views">
+          <button type="button" class="trends-tab-btn active" role="tab" aria-selected="true" data-tab="patterns">
+            Monthly Patterns
+          </button>
+          <button type="button" class="trends-tab-btn" role="tab" aria-selected="false" data-tab="categories">
+            Category Comparison
+          </button>
+          <button type="button" class="trends-tab-btn" role="tab" aria-selected="false" data-tab="recurring">
+            Recurring Increases &amp; Annualized Cost
+          </button>
+        </div>
+
+        <!-- Dynamic Analytics View Container -->
+        <div id="analyticsViewContainer"></div>
+
+        <!-- Historical Ledger Section -->
+        <section class="panel" aria-labelledby="ledgerHeading">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+            <div>
+              <h2 class="panel-title" id="ledgerHeading">Historical Statement Ledger</h2>
+              <p class="panel-sub" style="margin-bottom:0;">Search, filter, edit, or remove saved bills. Changes sync immediately across all BILLTRAP pages.</p>
+            </div>
+            <span class="tabular text-muted" style="font-size:13px;" id="ledgerCountLabel">0 records</span>
+          </div>
+
+          <div class="history-filters">
+            <input type="search" id="histSearch" class="input" placeholder="Search provider, category, or charge..." aria-label="Search historical bills" />
+            <select id="histCategory" class="select" aria-label="Filter by category">
+              <option value="ALL">All Categories</option>
+              <option value="Electricity">Electricity</option>
+              <option value="Mobile">Mobile</option>
+              <option value="Internet">Internet</option>
+              <option value="Insurance">Insurance</option>
+              <option value="Water & Gas">Water &amp; Gas</option>
+              <option value="Streaming">Streaming</option>
+              <option value="Other">Other</option>
+            </select>
+            <input type="month" id="histFromMonth" class="input tabular" aria-label="From billing period" title="From billing period" />
+            <input type="month" id="histToMonth" class="input tabular" aria-label="To billing period" title="To billing period" />
+            <select id="histSort" class="select" aria-label="Sort historical records">
+              <option value="period_desc">Newest First</option>
+              <option value="period_asc">Oldest First</option>
+              <option value="amount_desc">Highest Amount</option>
+              <option value="change_desc">Largest MoM Increase</option>
+            </select>
+          </div>
+
+          <div id="ledgerContainer"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Edit Bill Modal -->
+  <div class="modal-overlay" id="editBillModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal-card">
+      <h3 id="editModalTitle">Edit Historical Statement</h3>
+      <form id="editBillForm" novalidate>
+        <input type="hidden" id="editId" />
+        <div class="field">
+          <label for="editProvider">Provider Name *</label>
+          <input type="text" id="editProvider" class="input" required maxlength="80" />
+        </div>
+        <div class="form-row-2">
+          <div class="field">
+            <label for="editCategory">Category *</label>
+            <select id="editCategory" class="select">
+              <option value="Electricity">Electricity</option>
+              <option value="Mobile">Mobile</option>
+              <option value="Internet">Internet</option>
+              <option value="Insurance">Insurance</option>
+              <option value="Water & Gas">Water &amp; Gas</option>
+              <option value="Streaming">Streaming</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="editPeriod">Billing Period *</label>
+            <input type="month" id="editPeriod" class="input tabular" required />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="field">
+            <label for="editCycle">Billing Cadence</label>
+            <select id="editCycle" class="select">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+              <option value="one-time">One-time</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="editTotal">Total Amount ($) *</label>
+            <input type="number" id="editTotal" class="input tabular" min="0" step="0.01" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="editNotes">Notes</label>
+          <input type="text" id="editNotes" class="input" maxlength="160" />
+        </div>
+        <div class="field-error" id="editFormError"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="closeEditModalBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirmation / Info Modal -->
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card">
+      <h3 id="confirmTitle">Confirm</h3>
+      <p id="confirmMessage" style="color:var(--text-secondary);font-size:14px;margin:0 0 16px;"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmActionBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEYS = {
+        BILLS: 'billtrap_bills_v1',
+        ACTIONS: 'billtrap_actions_v1',
+        SETTINGS: 'billtrap_settings_v1'
+      };
+
+      const memoryFallback = {};
+
+      function readStorage(key, fallback) {
+        try {
+          const raw = window.localStorage.getItem(key);
+          return raw === null ? fallback : JSON.parse(raw);
+        } catch (err) {
+          return key in memoryFallback ? memoryFallback[key] : fallback;
+        }
+      }
+
+      function writeStorage(key, value) {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (err) {
+          memoryFallback[key] = value;
+        }
+      }
+
+      function round2(n) {
+        return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+      }
+
+      function fmtCurrency(val) {
+        if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
+        const n = Number(val);
+        const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (n < 0 ? '-$' : '$') + abs;
+      }
+
+      function fmtSignedCurrency(val) {
+        if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
+        const n = round2(Number(val));
+        return (n > 0 ? '+' : '') + fmtCurrency(n);
+      }
+
+      function escapeHtml(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function normalizeDesc(desc) {
+        return String(desc || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function getSampleBills() {
+        return [
+          { id: 'sample_elec_2026_06', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 114.20, lineItems: [{ id: 'li_nse_6_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_6_2', description: 'Electricity Usage (710 kWh)', amount: 89.40 }, { id: 'li_nse_6_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample summer baseline statement', isSample: true, createdAt: '2026-06-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_07', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 118.50, lineItems: [{ id: 'li_nse_7_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_7_2', description: 'Electricity Usage (740 kWh)', amount: 93.70 }, { id: 'li_nse_7_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample July statement', isSample: true, createdAt: '2026-07-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_08', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 121.00, lineItems: [{ id: 'li_nse_8_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_8_2', description: 'Electricity Usage (760 kWh)', amount: 96.20 }, { id: 'li_nse_8_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample August statement', isSample: true, createdAt: '2026-08-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_09', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 119.80, lineItems: [{ id: 'li_nse_9_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_9_2', description: 'Electricity Usage (750 kWh)', amount: 95.00 }, { id: 'li_nse_9_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample September statement', isSample: true, createdAt: '2026-09-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_10', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 164.70, lineItems: [{ id: 'li_nse_10_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_10_2', description: 'Electricity Usage (765 kWh)', amount: 96.80 }, { id: 'li_nse_10_3', description: 'Peak Demand Surcharge', amount: 29.90 }, { id: 'li_nse_10_4', description: 'Environmental Recovery Fee', amount: 10.00 }, { id: 'li_nse_10_5', description: 'Environmental Recovery Fee', amount: 10.00 }], notes: 'Sample October statement with new surcharge and repeated fee', isSample: true, createdAt: '2026-10-08T10:00:00.000Z' },
+          { id: 'sample_mob_2026_07', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_7_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_7_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-07-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_08', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_8_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_8_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-08-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_09', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_9_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_9_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-09-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_10', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 99.98, lineItems: [{ id: 'li_pw_10_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_10_2', description: 'Device Protection Plus', amount: 13.99 }, { id: 'li_pw_10_3', description: 'Device Protection Plus', amount: 13.99 }, { id: 'li_pw_10_4', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample October mobile bill with double add-on entry', isSample: true, createdAt: '2026-10-12T10:00:00.000Z' },
+          { id: 'sample_int_2026_06', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 65.00, lineItems: [{ id: 'li_vf_6_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }], notes: 'Sample promotional internet rate', isSample: true, createdAt: '2026-06-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_07', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 65.00, lineItems: [{ id: 'li_vf_7_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }], notes: 'Sample internet bill', isSample: true, createdAt: '2026-07-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_08', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 70.00, lineItems: [{ id: 'li_vf_8_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }, { id: 'li_vf_8_2', description: 'Network Infrastructure Fee', amount: 5.00 }], notes: 'Sample internet bill with new fee', isSample: true, createdAt: '2026-08-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_09', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 75.00, lineItems: [{ id: 'li_vf_9_1', description: 'Fiber 500 Symmetric Internet', amount: 70.00 }, { id: 'li_vf_9_2', description: 'Network Infrastructure Fee', amount: 5.00 }], notes: 'Sample gradual plan step-up', isSample: true, createdAt: '2026-09-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_10', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 84.99, lineItems: [{ id: 'li_vf_10_1', description: 'Fiber 500 Symmetric Internet', amount: 74.99 }, { id: 'li_vf_10_2', description: 'Network Infrastructure Fee', amount: 5.00 }, { id: 'li_vf_10_3', description: 'Wi-Fi Gateway Rental Fee', amount: 5.00 }], notes: 'Sample third consecutive monthly increase + router rental fee', isSample: true, createdAt: '2026-10-15T10:00:00.000Z' },
+          { id: 'sample_ins_2026_07', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 142.00, lineItems: [{ id: 'li_hs_7_1', description: 'Comprehensive Auto Policy', amount: 112.00 }, { id: 'li_hs_7_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-07-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_08', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 142.00, lineItems: [{ id: 'li_hs_8_1', description: 'Comprehensive Auto Policy', amount: 112.00 }, { id: 'li_hs_8_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-08-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_09', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 148.00, lineItems: [{ id: 'li_hs_9_1', description: 'Comprehensive Auto Policy', amount: 118.00 }, { id: 'li_hs_9_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample renewal adjustment', isSample: true, createdAt: '2026-09-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_10', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 173.50, lineItems: [{ id: 'li_hs_10_1', description: 'Comprehensive Auto Policy', amount: 137.00 }, { id: 'li_hs_10_2', description: 'Personal Property Rider', amount: 30.00 }, { id: 'li_hs_10_3', description: 'Paper Statement Admin Fee', amount: 6.50 }], notes: 'Sample October premium jump + paper statement fee', isSample: true, createdAt: '2026-10-20T10:00:00.000Z' }
+        ];
+      }
+
+      function getSettings() {
+        const saved = readStorage(STORAGE_KEYS.SETTINGS, null);
+        if (!saved || typeof saved !== 'object') {
+          return { thresholdPercent: 15, comparisonMode: 'provider', sampleInitialized: false };
+        }
+        const tp = Number(saved.thresholdPercent);
+        return {
+          thresholdPercent: Number.isFinite(tp) && tp >= 1 && tp <= 100 ? tp : 15,
+          comparisonMode: saved.comparisonMode === 'category' ? 'category' : 'provider',
+          sampleInitialized: Boolean(saved.sampleInitialized)
+        };
+      }
+
+      function ensureInitialized() {
+        const settings = getSettings();
+        if (!settings.sampleInitialized && readStorage(STORAGE_KEYS.BILLS, null) === null) {
+          writeStorage(STORAGE_KEYS.BILLS, getSampleBills());
+          writeStorage(STORAGE_KEYS.SETTINGS, Object.assign({}, settings, { sampleInitialized: true }));
+        }
+      }
+
+      function getBills() {
+        ensureInitialized();
+        const raw = readStorage(STORAGE_KEYS.BILLS, []);
+        if (!Array.isArray(raw)) return [];
+        return raw.filter(b => b && typeof b === 'object' && Number.isFinite(Number(b.totalAmount)) && Number(b.totalAmount) >= 0);
+      }
+
+      function saveBills(bills) {
+        writeStorage(STORAGE_KEYS.BILLS, bills);
+      }
+
+      function getActionsMap() {
+        const raw = readStorage(STORAGE_KEYS.ACTIONS, {});
+        return raw && typeof raw === 'object' ? raw : {};
+      }
+
+      function analyzeHistory(bills, settings) {
+        const threshold = Number(settings.thresholdPercent) || 15;
+        const chronological = bills.slice().sort((a, b) => {
+          if (a.billingPeriod !== b.billingPeriod) return a.billingPeriod.localeCompare(b.billingPeriod);
+          return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+        });
+
+        const byProvider = {};
+        const billMeta = {};
+        let openFindingsCount = 0;
+        const actionsMap = getActionsMap();
+
+        chronological.forEach(bill => {
+          const pk = bill.provider.toLowerCase().trim();
+          const hist = byProvider[pk] || [];
+          const prev = hist.length > 0 ? hist[hist.length - 1] : null;
+          let absChange = null;
+          let pctChange = null;
+          let annualizedIncrease = null;
+
+          if (prev) {
+            absChange = round2(bill.totalAmount - prev.totalAmount);
+            if (prev.totalAmount > 0) {
+              pctChange = round2((absChange / prev.totalAmount) * 100);
+            }
+            if (absChange > 0 && bill.billingCycle === 'monthly') {
+              annualizedIncrease = round2(absChange * 12);
+            }
+          }
+
+          // Count findings for sidebar badge consistency
+          const fIds = [];
+          const dupMap = {};
+          const dupNorms = new Set();
+          (bill.lineItems || []).forEach(li => {
+            const norm = normalizeDesc(li.description);
+            if (!norm || li.amount <= 0) return;
+            const k = norm + '__' + Number(li.amount).toFixed(2);
+            dupMap[k] = (dupMap[k] || 0) + 1;
+            if (dupMap[k] === 2) {
+              dupNorms.add(norm);
+              fIds.push('dup_' + bill.id + '_' + norm.replace(/\s+/g, '_').slice(0, 24));
+            }
+          });
+          if (prev && prev.totalAmount > 0 && absChange > 0 && pctChange !== null && pctChange >= threshold) {
+            fIds.push('inc_' + bill.id);
+          }
+          if (prev && (prev.lineItems || []).length > 0) {
+            const prevNorms = new Set(prev.lineItems.map(x => normalizeDesc(x.description)));
+            const feeRx = /\b(fee|surcharge|rental|protection|admin|administrative|recovery|maintenance|infrastructure|gateway|router|late|adjustment|addon|add on|rider)\b/i;
+            const seen = new Set();
+            (bill.lineItems || []).forEach(li => {
+              const norm = normalizeDesc(li.description);
+              if (norm && li.amount > 0 && !dupNorms.has(norm) && !prevNorms.has(norm) && feeRx.test(li.description) && !seen.has(norm)) {
+                seen.add(norm);
+                fIds.push('fee_' + bill.id + '_' + norm.replace(/\s+/g, '_').slice(0, 24));
+              }
+            });
+          }
+
+          const allProvBills = chronological.filter(x => x.provider.toLowerCase().trim() === pk);
+          const myIdx = allProvBills.findIndex(x => x.id === bill.id);
+          const nextProv = myIdx !== -1 && myIdx + 1 < allProvBills.length ? allProvBills[myIdx + 1] : null;
+          const superseded = Boolean(nextProv && nextProv.totalAmount > bill.totalAmount);
+
+          const chain = hist.concat([bill]);
+          let streak = 0;
+          for (let i = chain.length - 1; i >= 1; i--) {
+            if (chain[i].totalAmount > chain[i - 1].totalAmount) streak++;
+            else break;
+          }
+          if (streak >= 2 && !superseded) fIds.push('rec_' + bill.id);
+
+          fIds.forEach(fid => {
+            const st = actionsMap[fid] && actionsMap[fid].status;
+            if (!st || st === 'unreviewed' || st === 'reviewed') openFindingsCount++;
+          });
+
+          billMeta[bill.id] = {
+            bill,
+            prev,
+            absChange,
+            pctChange,
+            annualizedIncrease,
+            streak,
+            streakStartBill: streak >= 1 ? chain[chain.length - 1 - streak] : null
+          };
+
+          hist.push(bill);
+          byProvider[pk] = hist;
+        });
+
+        // Monthly aggregates
+        const monthMap = {};
+        chronological.forEach(b => {
+          if (!monthMap[b.billingPeriod]) {
+            monthMap[b.billingPeriod] = { period: b.billingPeriod, total: 0, byCat: {}, count: 0 };
+          }
+          monthMap[b.billingPeriod].total = round2(monthMap[b.billingPeriod].total + b.totalAmount);
+          monthMap[b.billingPeriod].byCat[b.category] = round2((monthMap[b.billingPeriod].byCat[b.category] || 0) + b.totalAmount);
+          monthMap[b.billingPeriod].count++;
+        });
+
+        const months = Object.keys(monthMap).sort().map((m, idx, arr) => {
+          const cur = monthMap[m];
+          const prevM = idx > 0 ? monthMap[arr[idx - 1]] : null;
+          const momDiff = prevM ? round2(cur.total - prevM.total) : null;
+          const momPct = prevM && prevM.total > 0 ? round2((momDiff / prevM.total) * 100) : null;
+          return Object.assign({}, cur, { momDiff, momPct });
+        });
+
+        // Category aggregates
+        const catMap = {};
+        chronological.forEach(b => {
+          if (!catMap[b.category]) {
+            catMap[b.category] = { category: b.category, total: 0, count: 0, byMonth: {} };
+          }
+          catMap[b.category].total = round2(catMap[b.category].total + b.totalAmount);
+          catMap[b.category].count++;
+          catMap[b.category].byMonth[b.billingPeriod] = round2((catMap[b.category].byMonth[b.billingPeriod] || 0) + b.totalAmount);
+        });
+
+        // Provider latest recurring / elevated cost items
+        const providerSummaries = Object.keys(byProvider).map(pk => {
+          const list = byProvider[pk];
+          const latest = list[list.length - 1];
+          const meta = billMeta[latest.id];
+          const first = list[0];
+          const netDiff = list.length > 1 ? round2(latest.totalAmount - first.totalAmount) : 0;
+          const latestJump = meta.absChange !== null && meta.absChange > 0 ? meta.absChange : 0;
+          const basisIncrease = meta.streak >= 2 && meta.streakStartBill
+            ? round2(latest.totalAmount - meta.streakStartBill.totalAmount)
+            : latestJump;
+          const annualized = basisIncrease > 0 && latest.billingCycle === 'monthly'
+            ? round2(basisIncrease * 12)
+            : null;
+          return {
+            provider: latest.provider,
+            category: latest.category,
+            billingCycle: latest.billingCycle,
+            latestBill: latest,
+            firstBill: first,
+            prevBill: meta.prev,
+            billCount: list.length,
+            streak: meta.streak,
+            streakStartBill: meta.streakStartBill,
+            latestJump,
+            basisIncrease,
+            netDiff,
+            annualized
+          };
+        }).filter(ps => ps.basisIncrease > 0 || ps.streak >= 1);
+
+        return {
+          billMeta,
+          months,
+          categories: Object.values(catMap).sort((a, b) => b.total - a.total),
+          providerSummaries: providerSummaries.sort((a, b) => (b.annualized || 0) - (a.annualized || 0)),
+          openFindingsCount
+        };
+      }
+
+      /* =====================================================================
+         UI STATE & RENDERING — history.html
+         ===================================================================== */
+      let activeTab = 'patterns';
+      let pendingConfirm = null;
+
+      function showToast(msg) {
+        const region = document.getElementById('toastRegion');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = msg;
+        region.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 3200);
+      }
+
+      function openConfirmModal(title, message, confirmLabel, confirmCls, onConfirm, hideCancel) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        const btn = document.getElementById('confirmActionBtn');
+        btn.textContent = confirmLabel || 'Confirm';
+        btn.className = 'btn ' + (confirmCls || 'btn-danger');
+        document.getElementById('confirmCancelBtn').style.display = hideCancel ? 'none' : 'inline-flex';
+        pendingConfirm = onConfirm || null;
+        document.getElementById('confirmModal').classList.add('open');
+      }
+
+      function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.remove('open');
+        pendingConfirm = null;
+      }
+
+      document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirmModal);
+      document.getElementById('confirmActionBtn').addEventListener('click', function () {
+        const fn = pendingConfirm;
+        closeConfirmModal();
+        if (typeof fn === 'function') fn();
+      });
+
+      // Mobile menu
+      document.getElementById('mobileMenuBtn').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarBackdrop').classList.toggle('open');
+      });
+      document.getElementById('sidebarBackdrop').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.remove('open');
+        this.classList.remove('open');
+      });
+
+      document.getElementById('openPrivacyModalBtn').addEventListener('click', function () {
+        openConfirmModal(
+          'Browser-Local Data & Privacy',
+          'All historical statements are stored locally in your browser via localStorage. Browser data is not backed up to any cloud server and may be erased if browser site data is cleared. Use Download CSV to keep offline copies.',
+          'Close',
+          'btn-primary',
+          null,
+          true
+        );
+      });
+
+      // Tab buttons
+      document.querySelectorAll('.trends-tab-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          activeTab = this.getAttribute('data-tab');
+          document.querySelectorAll('.trends-tab-btn').forEach(b => {
+            const isAct = b.getAttribute('data-tab') === activeTab;
+            b.classList.toggle('active', isAct);
+            b.setAttribute('aria-selected', isAct ? 'true' : 'false');
+          });
+          renderPage();
+        });
+      });
+
+      // Build Native SVG Line/Area Chart for Monthly Spending
+      function buildMonthlySvgChart(months) {
+        if (months.length === 0) return '';
+        const w = 540;
+        const h = 235;
+        const padL = 64;
+        const padR = 22;
+        const padT = 18;
+        const padB = 34;
+        const plotW = w - padL - padR;
+        const plotH = h - padT - padB;
+
+        const maxVal = Math.max(...months.map(m => m.total), 100);
+        const niceMax = Math.ceil(maxVal / 100) * 100;
+
+        const xAt = idx => months.length === 1
+          ? padL + plotW / 2
+          : padL + (idx / (months.length - 1)) * plotW;
+        const yAt = val => padT + plotH - (val / niceMax) * plotH;
+
+        let gridLines = '';
+        for (let step = 0; step <= 4; step++) {
+          const v = (niceMax / 4) * step;
+          const y = yAt(v);
+          gridLines +=
+            '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (w - padR) + '" y2="' + y.toFixed(1) + '" stroke="rgba(148,163,184,0.12)" stroke-dasharray="3 3" />' +
+            '<text x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" fill="#64748b" font-size="11" font-family="JetBrains Mono, monospace">$' + v.toFixed(0) + '</text>';
+        }
+
+        const pts = months.map((m, i) => ({ x: xAt(i), y: yAt(m.total), m }));
+        const linePath = pts.map((p, i) => (i === 0 ? 'M ' : 'L ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+        const areaPath = pts.length > 1
+          ? linePath + ' L ' + pts[pts.length - 1].x.toFixed(1) + ' ' + (padT + plotH).toFixed(1) + ' L ' + pts[0].x.toFixed(1) + ' ' + (padT + plotH).toFixed(1) + ' Z'
+          : '';
+
+        const xLabels = pts.map(p =>
+          '<text x="' + p.x.toFixed(1) + '" y="' + (h - 10) + '" text-anchor="middle" fill="#64748b" font-size="11" font-family="JetBrains Mono, monospace">' + escapeHtml(p.m.period) + '</text>'
+        ).join('');
+
+        const circles = pts.map(p => {
+          const momLabel = p.m.momPct !== null ? ' (' + (p.m.momPct > 0 ? '+' : '') + p.m.momPct.toFixed(1) + '%)' : '';
+          return (
+            '<g>' +
+              '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="#65e87b" stroke="#080d19" stroke-width="2">' +
+                '<title>' + escapeHtml(p.m.period + ': ' + fmtCurrency(p.m.total) + momLabel) + '</title>' +
+              '</circle>' +
+              '<text x="' + p.x.toFixed(1) + '" y="' + Math.max(12, p.y - 10).toFixed(1) + '" text-anchor="middle" fill="#cbd5e1" font-size="10.5" font-family="JetBrains Mono, monospace">' + fmtCurrency(p.m.total) + '</text>' +
+            '</g>'
+          );
+        }).join('');
+
+        return (
+          '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="100%" role="img" aria-label="Monthly spending trend chart">' +
+            '<defs>' +
+              '<linearGradient id="limeAreaGrad" x1="0" y1="0" x2="0" y2="1">' +
+                '<stop offset="0%" stop-color="#65e87b" stop-opacity="0.28"/>' +
+                '<stop offset="100%" stop-color="#65e87b" stop-opacity="0.0"/>' +
+              '</linearGradient>' +
+            '</defs>' +
+            gridLines +
+            (areaPath ? '<path d="' + areaPath + '" fill="url(#limeAreaGrad)" />' : '') +
+            '<path d="' + linePath + '" fill="none" stroke="#65e87b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />' +
+            xLabels +
+            circles +
+          '</svg>'
+        );
+      }
+
+      function renderAnalyticsView(bills, hist) {
+        const container = document.getElementById('analyticsViewContainer');
+
+        if (bills.length === 0) {
+          container.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Spending History Available</h3>' +
+              '<p>Once you add statements in the Bill Analyzer or load sample bills, monthly spending charts, category breakdowns, and annualized cost estimates will appear here.</p>' +
+              '<div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">' +
+                '<button type="button" class="btn btn-primary" id="histLoadSamplesBtn">Load Sample Data</button>' +
+                '<a href="./billtrap.html" class="btn btn-secondary">Go to Bill Analyzer</a>' +
+              '</div>' +
+            '</div>';
+          document.getElementById('histLoadSamplesBtn').addEventListener('click', function () {
+            saveBills(getSampleBills());
+            writeStorage(STORAGE_KEYS.SETTINGS, Object.assign({}, getSettings(), { sampleInitialized: true }));
+            renderPage();
+            showToast('Loaded sample billing history.');
+          });
+          return;
+        }
+
+        const months = hist.months;
+        const totalAll = round2(months.reduce((acc, m) => acc + m.total, 0));
+        const avgMonthly = months.length > 0 ? round2(totalAll / months.length) : 0;
+        const highestMonth = months.reduce((mx, m) => (!mx || m.total > mx.total ? m : mx), null);
+        const lowestMonth = months.reduce((mn, m) => (!mn || m.total < mn.total ? m : mn), null);
+        const latestMonth = months[months.length - 1];
+
+        if (activeTab === 'patterns') {
+          const momText = latestMonth && latestMonth.momPct !== null
+            ? 'Latest month (' + escapeHtml(latestMonth.period) + ') changed by <strong class="' + (latestMonth.momDiff > 0 ? 'text-amber' : 'text-lime') + '">' + fmtSignedCurrency(latestMonth.momDiff) + ' (' + (latestMonth.momPct > 0 ? '+' : '') + latestMonth.momPct.toFixed(1) + '%)</strong> vs prior month'
+            : 'Add at least two billing periods to calculate month-over-month percentage change';
+
+          const grandCatTotal = Math.max(totalAll, 0.01);
+          const totalAnnualizedCreep = round2(hist.providerSummaries.reduce((s, p) => s + (p.annualized || 0), 0));
+
+          container.innerHTML =
+            '<div class="charts-split">' +
+              '<section class="panel">' +
+                '<h2 class="panel-title">Monthly Spending Pattern</h2>' +
+                '<p class="panel-sub">Aggregate billed spend across ' + months.length + ' tracked billing ' + (months.length === 1 ? 'period' : 'periods') + '</p>' +
+                '<div class="mini-stats-row">' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Total</span><span class="mini-stat-value">' + fmtCurrency(totalAll) + '</span></div>' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Monthly Avg</span><span class="mini-stat-value">' + fmtCurrency(avgMonthly) + '</span></div>' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Highest</span><span class="mini-stat-value">' + (highestMonth ? fmtCurrency(highestMonth.total) : '—') + '</span></div>' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Lowest</span><span class="mini-stat-value">' + (lowestMonth ? fmtCurrency(lowestMonth.total) : '—') + '</span></div>' +
+                '</div>' +
+                '<div class="svg-chart-wrap">' + buildMonthlySvgChart(months) + '</div>' +
+                '<div class="chart-callout-bar">' + momText + '</div>' +
+              '</section>' +
+
+              '<section class="panel">' +
+                '<h2 class="panel-title">Spending by Category</h2>' +
+                '<p class="panel-sub"> Cumulative share and average statement cost per billing category</p>' +
+                '<div class="mini-stats-row">' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Categories</span><span class="mini-stat-value">' + hist.categories.length + '</span></div>' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Latest Month</span><span class="mini-stat-value">' + (latestMonth ? fmtCurrency(latestMonth.total) : '—') + '</span></div>' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Rising Providers</span><span class="mini-stat-value text-amber">' + hist.providerSummaries.length + '</span></div>' +
+                  '<div class="mini-stat"><span class="mini-stat-label">Annualized Creep</span><span class="mini-stat-value text-amber">' + fmtCurrency(totalAnnualizedCreep) + '</span></div>' +
+                '</div>' +
+                '<div class="cat-bar-list">' +
+                  hist.categories.map(c => {
+                    const share = round2((c.total / grandCatTotal) * 100);
+                    const avgPerStmt = round2(c.total / c.count);
+                    return (
+                      '<div class="cat-bar-item">' +
+                        '<div class="cat-bar-head">' +
+                          '<span><strong>' + escapeHtml(c.category) + '</strong> <span class="text-muted">· Avg ' + fmtCurrency(avgPerStmt) + '/bill</span></span>' +
+                          '<span class="tabular">' + fmtCurrency(c.total) + ' (' + share.toFixed(1) + '%)</span>' +
+                        '</div>' +
+                        '<div class="cat-bar-track"><div class="cat-bar-fill" style="width:' + Math.max(4, share) + '%;"></div></div>' +
+                      '</div>'
+                    );
+                  }).join('') +
+                '</div>' +
+                '<div class="chart-callout-bar">If elevated monthly rates continue, estimated extra annual spend is <strong class="text-amber">+' + fmtCurrency(totalAnnualizedCreep) + '/yr</strong></div>' +
+              '</section>' +
+            '</div>';
+          return;
+        }
+
+        if (activeTab === 'categories') {
+          const periodCols = months.map(m => m.period);
+          container.innerHTML =
+            '<section class="panel">' +
+              '<h2 class="panel-title">Monthly Category Comparison Matrix</h2>' +
+              '<p class="panel-sub">Side-by-side monthly totals across categories with period averages and latest-month variance.</p>' +
+              '<div class="table-wrap">' +
+                '<table class="data-table">' +
+                  '<thead>' +
+                    '<tr>' +
+                      '<th>Category</th>' +
+                      periodCols.map(p => '<th class="num">' + escapeHtml(p) + '</th>').join('') +
+                      '<th class="num">Active Mo. Avg</th>' +
+                      '<th class="num">Latest vs Avg</th>' +
+                    '</tr>' +
+                  '</thead>' +
+                  '<tbody>' +
+                    hist.categories.map(c => {
+                      const activeMonthsCount = Object.keys(c.byMonth).length || 1;
+                      const catMonthlyAvg = round2(c.total / activeMonthsCount);
+                      const latestVal = latestMonth ? (c.byMonth[latestMonth.period] || 0) : 0;
+                      const diffVsAvg = round2(latestVal - catMonthlyAvg);
+                      const diffCls = diffVsAvg > 0.5 ? 'text-amber' : (diffVsAvg < -0.5 ? 'text-lime' : 'text-muted');
+                      return (
+                        '<tr>' +
+                          '<td><strong>' + escapeHtml(c.category) + '</strong></td>' +
+                          periodCols.map(p => '<td class="num">' + (c.byMonth[p] !== undefined ? fmtCurrency(c.byMonth[p]) : '—') + '</td>').join('') +
+                          '<td class="num">' + fmtCurrency(catMonthlyAvg) + '</td>' +
+                          '<td class="num ' + diffCls + '">' + fmtSignedCurrency(diffVsAvg) + '</td>' +
+                        '</tr>'
+                      );
+                    }).join('') +
+                    '<tr style="font-weight:700;border-top:2px solid var(--border-strong);">' +
+                      '<td>Total Monthly Spend</td>' +
+                      months.map(m => '<td class="num">' + fmtCurrency(m.total) + '</td>').join('') +
+                      '<td class="num">' + fmtCurrency(avgMonthly) + '</td>' +
+                      '<td class="num ' + (latestMonth && latestMonth.total > avgMonthly ? 'text-amber' : 'text-lime') + '">' +
+                        (latestMonth ? fmtSignedCurrency(round2(latestMonth.total - avgMonthly)) : '—') +
+                      '</td>' +
+                    '</tr>' +
+                  '</tbody>' +
+                '</table>' +
+              '</div>' +
+            '</section>';
+          return;
+        }
+
+        // Recurring Increases & Annualized Cost Estimate Tab
+        if (hist.providerSummaries.length === 0) {
+          container.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Recurring Increases Detected</h3>' +
+              '<p>None of your tracked providers currently show upward monthly price jumps or consecutive billing increases.</p>' +
+            '</div>';
+          return;
+        }
+
+        container.innerHTML =
+          '<section class="panel">' +
+            '<h2 class="panel-title">Recurring Price Increases &amp; Annualized Cost Estimates</h2>' +
+            '<p class="panel-sub">Highlights providers with consecutive upward billing streaks or higher latest monthly rates, and projects the 12-month cost impact if the higher rate continues.</p>' +
+            '<div class="recurring-grid">' +
+              hist.providerSummaries.map(ps => {
+                const startRef = ps.streak >= 2 && ps.streakStartBill ? ps.streakStartBill : ps.prevBill;
+                const badgeLabel = ps.streak >= 2
+                  ? '<span class="text-amber">' + ps.streak + ' consecutive increases</span>'
+                  : '<span class="text-amber">Latest statement increase</span>';
+                return (
+                  '<article class="recurring-card">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">' +
+                      '<div>' +
+                        '<h3 style="margin:0;font-size:16px;">' + escapeHtml(ps.provider) + '</h3>' +
+                        '<div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px;">' +
+                          escapeHtml(ps.category) + ' · <span style="text-transform:capitalize;">' + escapeHtml(ps.billingCycle) + '</span> · ' + badgeLabel +
+                        '</div>' +
+                      '</div>' +
+                      '<div style="text-align:right;">' +
+                        '<div class="tabular" style="font-size:18px;font-weight:700;color:var(--warn-amber);">' +
+                          (ps.annualized !== null ? '+' + fmtCurrency(ps.annualized) + '/yr' : 'Non-monthly') +
+                        '</div>' +
+                        '<div style="font-size:11.5px;color:var(--text-muted);">Annualized extra cost</div>' +
+                      '</div>' +
+                    '</div>' +
+                    '<div style="font-size:13px;color:var(--text-secondary);padding-top:8px;border-top:1px solid var(--border-subtle);">' +
+                      (startRef
+                        ? 'Moved from <strong class="tabular" style="color:var(--text-primary);">' + fmtCurrency(startRef.totalAmount) + '</strong> (' + escapeHtml(startRef.billingPeriod) + ') to <strong class="tabular" style="color:var(--text-primary);">' + fmtCurrency(ps.latestBill.totalAmount) + '</strong> (' + escapeHtml(ps.latestBill.billingPeriod) + '), adding <strong class="tabular text-amber">' + fmtSignedCurrency(ps.basisIncrease) + '/mo</strong>.'
+                        : 'Current statement: ' + fmtCurrency(ps.latestBill.totalAmount)) +
+                    '</div>' +
+                    '<div style="display:flex;justify-content:flex-end;">' +
+                      '<a href="./action-center.html?bill=' + encodeURIComponent(ps.latestBill.id) + '" class="btn btn-secondary btn-sm">Review in Action Center</a>' +
+                    '</div>' +
+                  '</article>'
+                );
+              }).join('') +
+            '</div>' +
+          '</section>';
+      }
+
+      function getFilteredRecords(bills, hist) {
+        const q = document.getElementById('histSearch').value.trim().toLowerCase();
+        const cat = document.getElementById('histCategory').value;
+        const fromM = document.getElementById('histFromMonth').value;
+        const toM = document.getElementById('histToMonth').value;
+        const sort = document.getElementById('histSort').value;
+
+        const rows = bills.map(b => hist.billMeta[b.id]).filter(meta => {
+          const b = meta.bill;
+          if (cat !== 'ALL' && b.category !== cat) return false;
+          if (fromM && b.billingPeriod < fromM) return false;
+          if (toM && b.billingPeriod > toM) return false;
+          if (q) {
+            const hay = [
+              b.provider,
+              b.category,
+              b.billingPeriod,
+              b.notes || '',
+              (b.lineItems || []).map(x => x.description).join(' ')
+            ].join(' ').toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        rows.sort((a, b) => {
+          if (sort === 'period_asc') return a.bill.billingPeriod.localeCompare(b.bill.billingPeriod) || a.bill.provider.localeCompare(b.bill.provider);
+          if (sort === 'amount_desc') return b.bill.totalAmount - a.bill.totalAmount;
+          if (sort === 'change_desc') return (b.absChange !== null ? b.absChange : -999999) - (a.absChange !== null ? a.absChange : -999999);
+          return b.bill.billingPeriod.localeCompare(a.bill.billingPeriod) || a.bill.provider.localeCompare(b.bill.provider);
+        });
+
+        return rows;
+      }
+
+      function renderLedger(bills, hist) {
+        const ledgerContainer = document.getElementById('ledgerContainer');
+        const filtered = getFilteredRecords(bills, hist);
+        document.getElementById('ledgerCountLabel').textContent = filtered.length + ' of ' + bills.length + ' records';
+
+        if (bills.length === 0) {
+          ledgerContainer.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Historical Records</h3>' +
+              '<p>Saved statements will be listed here with month-over-month comparisons and CSV export support.</p>' +
+            '</div>';
+          return;
+        }
+
+        if (filtered.length === 0) {
+          ledgerContainer.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Records Match Filters</h3>' +
+              '<p>Try widening the billing period range or clearing your search query.</p>' +
+              '<button type="button" class="btn btn-secondary" id="resetHistFiltersBtn">Clear Filters</button>' +
+            '</div>';
+          document.getElementById('resetHistFiltersBtn').addEventListener('click', function () {
+            document.getElementById('histSearch').value = '';
+            document.getElementById('histCategory').value = 'ALL';
+            document.getElementById('histFromMonth').value = '';
+            document.getElementById('histToMonth').value = '';
+            renderPage();
+          });
+          return;
+        }
+
+        ledgerContainer.innerHTML =
+          '<div class="table-wrap">' +
+            '<table class="data-table" aria-label="Historical Bills Table">' +
+              '<thead>' +
+                '<tr>' +
+                  '<th>Period</th>' +
+                  '<th>Provider</th>' +
+                  '<th>Category &amp; Cadence</th>' +
+                  '<th class="num">Amount</th>' +
+                  '<th class="num">vs Prior Bill</th>' +
+                  '<th class="num">Annualized Est.</th>' +
+                  '<th style="text-align:right;">Actions</th>' +
+                '</tr>' +
+              '</thead>' +
+              '<tbody>' +
+                filtered.map(meta => {
+                  const b = meta.bill;
+                  const deltaCls = meta.absChange === null ? 'text-muted' : (meta.absChange > 0 ? 'text-amber' : (meta.absChange < 0 ? 'text-lime' : 'text-muted'));
+                  const deltaText = meta.absChange === null
+                    ? 'Baseline'
+                    : fmtSignedCurrency(meta.absChange) + (meta.pctChange !== null ? ' (' + (meta.pctChange > 0 ? '+' : '') + meta.pctChange.toFixed(1) + '%)' : '');
+                  return (
+                    '<tr>' +
+                      '<td class="tabular">' + escapeHtml(b.billingPeriod) + '</td>' +
+                      '<td>' +
+                        '<strong>' + escapeHtml(b.provider) + '</strong>' +
+                        (meta.streak >= 2 ? '<div style="font-size:11.5px;" class="text-amber">Recurring rise (' + meta.streak + 'x)</div>' : '') +
+                      '</td>' +
+                      '<td class="text-muted">' +
+                        escapeHtml(b.category) + ' · <span style="text-transform:capitalize;">' + escapeHtml(b.billingCycle) + '</span>' +
+                        (b.isSample ? ' · <span class="text-amber">Sample</span>' : '') +
+                      '</td>' +
+                      '<td class="num"><strong>' + fmtCurrency(b.totalAmount) + '</strong></td>' +
+                      '<td class="num ' + deltaCls + '">' + escapeHtml(deltaText) + '</td>' +
+                      '<td class="num ' + (meta.annualizedIncrease ? 'text-amber' : 'text-muted') + '">' +
+                        (meta.annualizedIncrease ? '+' + fmtCurrency(meta.annualizedIncrease) + '/yr' : '—') +
+                      '</td>' +
+                      '<td style="text-align:right;white-space:nowrap;">' +
+                        '<button type="button" class="btn btn-secondary btn-sm js-hist-edit" data-id="' + escapeHtml(b.id) + '" style="margin-right:6px;">Edit</button>' +
+                        '<button type="button" class="btn btn-danger btn-sm js-hist-del" data-id="' + escapeHtml(b.id) + '">Delete</button>' +
+                      '</td>' +
+                    '</tr>'
+                  );
+                }).join('') +
+              '</tbody>' +
+            '</table>' +
+          '</div>';
+
+        ledgerContainer.querySelectorAll('.js-hist-edit').forEach(btn => {
+          btn.addEventListener('click', function () {
+            openEditModal(this.getAttribute('data-id'));
+          });
+        });
+
+        ledgerContainer.querySelectorAll('.js-hist-del').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const id = this.getAttribute('data-id');
+            const target = getBills().find(x => x.id === id);
+            if (!target) return;
+            openConfirmModal(
+              'Delete Historical Record?',
+              'Remove ' + target.provider + ' (' + target.billingPeriod + ', ' + fmtCurrency(target.totalAmount) + ') from your saved history?',
+              'Delete Record',
+              'btn-danger',
+              function () {
+                saveBills(getBills().filter(x => x.id !== id));
+                renderPage();
+                showToast('Deleted historical record.');
+              },
+              false
+            );
+          });
+        });
+      }
+
+      // Edit Modal Logic
+      function openEditModal(billId) {
+        const bill = getBills().find(x => x.id === billId);
+        if (!bill) return;
+        document.getElementById('editId').value = bill.id;
+        document.getElementById('editProvider').value = bill.provider;
+        document.getElementById('editCategory').value = bill.category;
+        document.getElementById('editPeriod').value = bill.billingPeriod;
+        document.getElementById('editCycle').value = bill.billingCycle || 'monthly';
+        document.getElementById('editTotal').value = Number(bill.totalAmount).toFixed(2);
+        document.getElementById('editNotes').value = bill.notes || '';
+        document.getElementById('editFormError').textContent = '';
+        document.getElementById('editBillModal').classList.add('open');
+      }
+
+      function closeEditModal() {
+        document.getElementById('editBillModal').classList.remove('open');
+      }
+
+      document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
+      document.getElementById('editBillForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const errEl = document.getElementById('editFormError');
+        errEl.textContent = '';
+
+        const id = document.getElementById('editId').value;
+        const provider = document.getElementById('editProvider').value.trim();
+        const category = document.getElementById('editCategory').value;
+        const billingPeriod = document.getElementById('editPeriod').value.trim();
+        const billingCycle = document.getElementById('editCycle').value;
+        const rawAmt = document.getElementById('editTotal').value.trim();
+        const totalAmount = Number(rawAmt);
+        const notes = document.getElementById('editNotes').value.trim();
+
+        if (!provider) {
+          errEl.textContent = 'Provider name is required.';
+          return;
+        }
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(billingPeriod)) {
+          errEl.textContent = 'Enter a valid YYYY-MM billing period.';
+          return;
+        }
+        if (rawAmt === '' || !Number.isFinite(totalAmount) || totalAmount < 0 || totalAmount > 1000000) {
+          errEl.textContent = 'Enter a valid non-negative statement amount ($0.00 to $1,000,000).';
+          return;
+        }
+
+        const bills = getBills();
+        const idx = bills.findIndex(b => b.id === id);
+        if (idx !== -1) {
+          bills[idx] = Object.assign({}, bills[idx], {
+            provider,
+            category,
+            billingPeriod,
+            billingCycle,
+            totalAmount: round2(totalAmount),
+            notes,
+            isSample: false
+          });
+          saveBills(bills);
+        }
+        closeEditModal();
+        renderPage();
+        showToast('Updated historical statement for ' + provider + '.');
+      });
+
+      // CSV Export
+      function csvCell(val) {
+        const str = String(val == null ? '' : val);
+        if (/[",\n\r]/.test(str)) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      }
+
+      document.getElementById('exportCsvBtn').addEventListener('click', function () {
+        const bills = getBills();
+        if (bills.length === 0) {
+          showToast('No bill records available to export.');
+          return;
+        }
+        const hist = analyzeHistory(bills, getSettings());
+        const rows = getFilteredRecords(bills, hist);
+        if (rows.length === 0) {
+          showToast('No matching filtered records to export.');
+          return;
+        }
+
+        const header = [
+          'Billing Period',
+          'Provider',
+          'Category',
+          'Billing Cadence',
+          'Total Amount (USD)',
+          'Previous Amount (USD)',
+          'Change (USD)',
+          'Change (%)',
+          'Annualized Extra Estimate (USD)',
+          'Data Source',
+          'Line Items',
+          'Notes'
+        ];
+
+        const csvLines = [header.map(csvCell).join(',')];
+        rows.forEach(meta => {
+          const b = meta.bill;
+          const itemsText = (b.lineItems || []).map(li => li.description + ' ($' + Number(li.amount).toFixed(2) + ')').join('; ');
+          csvLines.push([
+            b.billingPeriod,
+            b.provider,
+            b.category,
+            b.billingCycle,
+            Number(b.totalAmount).toFixed(2),
+            meta.prev ? Number(meta.prev.totalAmount).toFixed(2) : '',
+            meta.absChange !== null ? meta.absChange.toFixed(2) : '',
+            meta.pctChange !== null ? meta.pctChange.toFixed(1) : '',
+            meta.annualizedIncrease !== null ? meta.annualizedIncrease.toFixed(2) : '',
+            b.isSample ? 'Sample' : 'User',
+            itemsText,
+            b.notes || ''
+          ].map(csvCell).join(','));
+        });
+
+        const blob = new Blob([csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'billtrap-spending-history-' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Exported ' + rows.length + ' bill records to CSV.');
+      });
+
+      // Filter listeners
+      ['histSearch', 'histCategory', 'histFromMonth', 'histToMonth', 'histSort'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', renderPage);
+        el.addEventListener('change', renderPage);
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeEditModal();
+          closeConfirmModal();
+        }
+      });
+
+      function renderPage() {
+        const bills = getBills();
+        const hist = analyzeHistory(bills, getSettings());
+        const sampleCount = bills.filter(b => b.isSample).length;
+
+        document.getElementById('navBillCount').textContent = String(bills.length);
+        document.getElementById('navOpenFindings').textContent = String(hist.openFindingsCount);
+        document.getElementById('sidebarSampleIndicator').textContent = sampleCount > 0 ? (sampleCount + ' Sample') : 'Local';
+
+        renderAnalyticsView(bills, hist);
+        renderLedger(bills, hist);
+      }
+
+      ensureInitialized();
+      renderPage();
+    })();
+  </script>
+</body>
+</html>

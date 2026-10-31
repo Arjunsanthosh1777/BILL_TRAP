@@ -1,0 +1,6 @@
+{
+  "name": "BILLTRAP",
+  "description": "Identify unusual bill increases, possible duplicate charges, unexpected fees, and recurring cost increases in everyday bills.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

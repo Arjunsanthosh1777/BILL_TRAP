@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BILLTRAP — Action Center</title>
+  <meta name="description" content="Review flagged billing issues, separate suspected charges from confirmed errors, generate provider clarification letters, and track dispute reference numbers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #080d19;
+      --bg-sidebar: #0b1120;
+      --bg-surface: #101829;
+      --bg-elevated: #152036;
+      --bg-input: #0c1322;
+      --border-subtle: rgba(148, 163, 184, 0.12);
+      --border-strong: rgba(148, 163, 184, 0.24);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-lime: #65e87b;
+      --accent-lime-hover: #52dc69;
+      --accent-lime-soft: rgba(101, 232, 123, 0.12);
+      --accent-ink: #051408;
+      --warn-amber: #fbbf24;
+      --warn-amber-soft: rgba(251, 191, 36, 0.12);
+      --danger-red: #f87171;
+      --danger-red-soft: rgba(248, 113, 113, 0.12);
+      --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 6px;
+      --sidebar-w: 256px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+
+    :focus-visible {
+      outline: 2px solid var(--accent-lime);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 22px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .brand-wordmark {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .sidebar-nav {
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-link-inner { display: flex; align-items: center; gap: 11px; }
+    .nav-link:hover { background: rgba(255, 255, 255, 0.04); color: var(--text-primary); }
+    .nav-link.active { background: var(--accent-lime); color: var(--accent-ink); font-weight: 600; }
+    .nav-count { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.85; }
+
+    .sidebar-footer {
+      padding: 16px 18px 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .privacy-note { font-size: 12px; line-height: 1.5; color: var(--text-muted); margin: 0; }
+
+    .sidebar-util-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .sidebar-util-btn:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+    /* Mobile Header */
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 56px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.72);
+      z-index: 35;
+    }
+
+    /* Main Workspace */
+    .main-area {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      min-width: 0;
+      padding: 32px 36px 56px;
+    }
+
+    .workspace-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .page-title-group h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.4vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .page-subtitle {
+      margin: 6px 0 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+      max-width: 70ch;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+      min-height: 40px;
+    }
+
+    .btn-primary { background: var(--accent-lime); color: var(--accent-ink); }
+    .btn-primary:hover { background: var(--accent-lime-hover); }
+    .btn-secondary { background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-primary); }
+    .btn-secondary:hover { border-color: var(--border-strong); background: var(--bg-elevated); }
+    .btn-danger { background: var(--danger-red-soft); border-color: rgba(248, 113, 113, 0.3); color: var(--danger-red); }
+    .btn-sm { padding: 6px 11px; font-size: 12.5px; min-height: 34px; }
+
+    .text-lime { color: var(--accent-lime); }
+    .text-amber { color: var(--warn-amber); }
+    .text-red { color: var(--danger-red); }
+    .text-muted { color: var(--text-secondary); }
+
+    /* Metrics Strip */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .metric-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+    .metric-value { font-size: 24px; font-weight: 700; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .metric-foot { font-size: 12px; color: var(--text-muted); }
+
+    /* Distinction Banner */
+    .distinction-notice {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Filter Segmented Bar */
+    .status-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      overflow-x: auto;
+    }
+
+    .status-tab {
+      background: transparent;
+      border: none;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .status-tab.active {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+    }
+
+    /* Main Split Layout */
+    .action-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(380px, 0.95fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .panel-sub {
+      margin: 4px 0 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Findings Cards */
+    .findings-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .finding-card {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      background: rgba(12, 19, 34, 0.55);
+      transition: border-color 0.15s ease;
+    }
+
+    .finding-card:hover { border-color: var(--border-strong); }
+
+    .finding-card.selected {
+      border-color: var(--accent-lime);
+      background: rgba(101, 232, 123, 0.04);
+    }
+
+    .finding-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .finding-title {
+      margin: 4px 0 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .finding-kicker {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .finding-explanation {
+      margin: 10px 0 14px;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .finding-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .input, .select, .textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      min-height: 38px;
+    }
+
+    .textarea {
+      min-height: 210px;
+      resize: vertical;
+      line-height: 1.55;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+    }
+
+    .input:focus, .select:focus, .textarea:focus {
+      border-color: var(--accent-lime);
+      outline: none;
+    }
+
+    .select-compact {
+      width: auto;
+      min-height: 34px;
+      padding: 5px 10px;
+      font-size: 12.5px;
+    }
+
+    /* Right Column Workspace Tabs */
+    .tool-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      margin-bottom: 18px;
+    }
+
+    .tool-tab-btn {
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .tool-tab-btn.active {
+      background: var(--accent-lime);
+      color: var(--accent-ink);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Checklist */
+    .checklist-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      font-size: 13.5px;
+    }
+
+    .check-row label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .check-row input[type="checkbox"] {
+      accent-color: var(--accent-lime);
+      width: 17px;
+      height: 17px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .check-row.done span {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    /* Contact Log */
+    .contact-log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .log-entry {
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      font-size: 13px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state h3 { margin: 0 0 8px; font-size: 17px; }
+    .empty-state p { margin: 0 auto 18px; color: var(--text-secondary); font-size: 13.5px; max-width: 44ch; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.78);
+      display: none;
+      place-items: center;
+      padding: 20px;
+      z-index: 60;
+    }
+
+    .modal-overlay.open { display: grid; }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      max-width: 460px;
+      width: 100%;
+      padding: 24px;
+    }
+
+    .modal-card h3 { margin: 0 0 8px; font-size: 18px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+    .toast-region {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 80;
+    }
+
+    .toast {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    @media (max-width: 1140px) {
+      .action-split { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open { display: block; }
+      .mobile-topbar { display: flex; }
+      .main-area { margin-left: 0; padding: 20px 16px 48px; }
+    }
+
+    @media (max-width: 560px) {
+      .metrics-grid, .form-row-2, .tool-tabs { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mobile-topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="brand-mark" aria-hidden="true">B</div>
+      <span class="brand-wordmark">BILLTRAP</span>
+    </div>
+    <button type="button" class="icon-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary Sidebar">
+      <div class="brand-bar">
+        <div class="brand-mark" aria-hidden="true">B</div>
+        <span class="brand-wordmark">BILLTRAP</span>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Main Pages">
+        <a href="./billtrap.html" class="nav-link">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4" stroke-linecap="round"/>
+            </svg>
+            <span>Bill Analyzer</span>
+          </span>
+          <span class="nav-count" id="navBillCount">0</span>
+        </a>
+        <a href="./history.html" class="nav-link">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 14l4-4 4 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Spending History</span>
+          </span>
+        </a>
+        <a href="./action-center.html" class="nav-link active" aria-current="page">
+          <span class="nav-link-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Action Center</span>
+          </span>
+          <span class="nav-count" id="navOpenFindings">0</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-util-btn" id="openPrivacyModalBtn">
+          <span>Data &amp; Privacy</span>
+          <span class="tabular" id="sidebarSampleIndicator">Local</span>
+        </button>
+        <p class="privacy-note">
+          Review statuses, letters, checklists, and contact logs are stored locally in localStorage. Never enter passwords or payment card details.
+        </p>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <div class="workspace-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65e87b" stroke-width="2.2" aria-hidden="true">
+                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Action Center
+            </h1>
+            <p class="page-subtitle">
+              Investigate flagged warnings, separate suspected anomalies from confirmed billing errors, draft provider clarification letters, and log call reference numbers.
+            </p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn btn-secondary" id="exportReportTxtBtn">Export Report (.txt)</button>
+            <button type="button" class="btn btn-primary" id="exportReportCsvBtn">Export Findings (.csv)</button>
+          </div>
+        </div>
+
+        <!-- Summary Metrics -->
+        <section class="metrics-grid" aria-label="Action Center Summary">
+          <div class="metric-card">
+            <span class="metric-label">Suspected Issues (Open)</span>
+            <span class="metric-value text-amber" id="kpiSuspectedCount">0</span>
+            <span class="metric-foot">Unverified warnings needing review</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Confirmed Billing Errors</span>
+            <span class="metric-value text-red" id="kpiConfirmedCount">0</span>
+            <span class="metric-foot">Verified overcharges or duplicates</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Est. Potential Savings</span>
+            <span class="metric-value text-lime" id="kpiPotentialSavings">$0.00</span>
+            <span class="metric-foot">De-duplicated active monthly delta</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Resolved Credits Logged</span>
+            <span class="metric-value text-lime" id="kpiResolvedCredits">$0.00</span>
+            <span class="metric-foot" id="kpiContactLogCount">0 provider contacts logged</span>
+          </div>
+        </section>
+
+        <!-- Suspected vs Confirmed Guidance Banner -->
+        <div class="distinction-notice">
+          <div>
+            <strong style="color:var(--text-primary);">Suspected Issues vs. Confirmed Errors:</strong>
+            Automated checks highlight unusual increases and repeated line items for review — they do not prove provider error. Mark an item as <em>Confirmed Error</em> only after verifying your statement or speaking with your provider.
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="clearBillFilterBtn" style="display:none;">Show All Bills</button>
+        </div>
+
+        <!-- Status Filter Tabs + Search -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div class="status-tabs" role="tablist" aria-label="Filter findings by review status">
+            <button type="button" class="status-tab active" data-status-filter="ALL">All Findings</button>
+            <button type="button" class="status-tab" data-status-filter="unreviewed">Needs Review</button>
+            <button type="button" class="status-tab" data-status-filter="reviewed">Reviewed</button>
+            <button type="button" class="status-tab" data-status-filter="confirmed_only">Confirmed Errors</button>
+            <button type="button" class="status-tab" data-status-filter="resolved">Resolved</button>
+            <button type="button" class="status-tab" data-status-filter="dismissed">Dismissed</button>
+          </div>
+          <input type="search" id="findingSearchInput" class="input" style="max-width:280px;" placeholder="Search provider or issue..." aria-label="Search flagged issues" />
+        </div>
+
+        <!-- Split Workspace: Findings Queue (Left) + Action Studio (Right) -->
+        <div class="action-split">
+          <!-- Left: Flagged Findings Queue -->
+          <section class="panel" aria-labelledby="queueHeading">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <h2 class="panel-title" id="queueHeading">Flagged Charges &amp; Increases</h2>
+              <span class="tabular text-muted" style="font-size:13px;" id="findingsShownCount">0 items</span>
+            </div>
+            <div id="findingsQueueContainer" class="findings-stack"></div>
+          </section>
+
+          <!-- Right: Letter Generator, Provider Checklist & Contact Tracker -->
+          <section class="panel" aria-labelledby="studioHeading">
+            <div style="margin-bottom:14px;">
+              <h2 class="panel-title" id="studioHeading">Resolution Toolkit</h2>
+              <p class="panel-sub" id="selectedFindingContext" style="margin-bottom:0;">Select a finding on the left to customize a clarification letter, run your call checklist, or log provider reference numbers.</p>
+            </div>
+
+            <div class="tool-tabs" role="tablist" aria-label="Resolution Tools">
+              <button type="button" class="tool-tab-btn active" data-tool-tab="letter">Clarification Letter</button>
+              <button type="button" class="tool-tab-btn" data-tool-tab="checklist">Call Checklist</button>
+              <button type="button" class="tool-tab-btn" data-tool-tab="contacts">Contact Log</button>
+            </div>
+
+            <!-- Tool View 1: Clarification / Complaint Letter Generator -->
+            <div id="toolViewLetter">
+              <div class="form-row-2">
+                <div class="field">
+                  <label for="letterToneSelect">Inquiry Tone</label>
+                  <select id="letterToneSelect" class="select">
+                    <option value="clarification">Polite Clarification Request</option>
+                    <option value="dispute">Formal Billing Error Dispute</option>
+                    <option value="retention">Recurring Rate Review Request</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="letterCustomerName">Your Name</label>
+                  <input type="text" id="letterCustomerName" class="input" placeholder="e.g., Jordan Taylor" maxlength="60" />
+                </div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="field">
+                  <label for="letterAccountRef">Account / Policy ID (No card #s)</label>
+                  <input type="text" id="letterAccountRef" class="input" placeholder="e.g., ACCT-4092" maxlength="40" />
+                </div>
+                <div class="field">
+                  <label for="letterResolutionGoal">Requested Outcome</label>
+                  <select id="letterResolutionGoal" class="select">
+                    <option value="Itemized written explanation and statement adjustment if billed in error">Itemized explanation &amp; adjustment if error</option>
+                    <option value="Removal and credit of the duplicate charge on my current statement">Refund / credit duplicate charge</option>
+                    <option value="Removal of the newly added fee and restoration of my prior monthly rate">Remove new fee &amp; restore prior rate</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <label for="letterOutputArea">Customizable Message (Editable)</label>
+                  <button type="button" class="btn btn-secondary btn-sm" id="regenerateLetterBtn">Reset Template</button>
+                </div>
+                <textarea id="letterOutputArea" class="textarea" aria-label="Generated provider inquiry letter"></textarea>
+              </div>
+
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary" style="flex:1;" id="copyLetterBtn">Copy Letter to Clipboard</button>
+                <button type="button" class="btn btn-secondary" id="downloadLetterBtn">Download .txt</button>
+              </div>
+            </div>
+
+            <!-- Tool View 2: Provider Contact Checklist -->
+            <div id="toolViewChecklist" style="display:none;">
+              <p style="margin:0 0 12px;font-size:13px;color:var(--text-secondary);">
+                Complete these steps before and during your conversation with the service provider:
+              </p>
+              <div id="checklistContainer" class="checklist-items"></div>
+              <form id="addChecklistForm" style="display:flex;gap:8px;">
+                <input type="text" id="newCheckItemInput" class="input" placeholder="Add custom preparation step..." maxlength="120" aria-label="New checklist step" />
+                <button type="submit" class="btn btn-secondary">Add Step</button>
+              </form>
+            </div>
+
+            <!-- Tool View 3: Provider Contact Dates, Reference Numbers & Outcomes -->
+            <div id="toolViewContacts" style="display:none;">
+              <form id="contactLogForm" novalidate>
+                <div class="form-row-2">
+                  <div class="field">
+                    <label for="contactDateInput">Contact Date *</label>
+                    <input type="date" id="contactDateInput" class="input tabular" required />
+                  </div>
+                  <div class="field">
+                    <label for="contactChannelInput">Channel</label>
+                    <select id="contactChannelInput" class="select">
+                      <option value="Phone">Phone Call</option>
+                      <option value="Live Chat">Live Chat</option>
+                      <option value="Email">Support Email</option>
+                      <option value="Billing Portal">Online Portal</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="field">
+                    <label for="contactRefInput">Reference / Ticket Number *</label>
+                    <input type="text" id="contactRefInput" class="input tabular" placeholder="e.g., CASE-77219" maxlength="50" required />
+                  </div>
+                  <div class="field">
+                    <label for="contactCreditInput">Confirmed Credit / Refund ($)</label>
+                    <input type="number" id="contactCreditInput" class="input tabular" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="contactOutcomeInput">Outcome</label>
+                  <select id="contactOutcomeInput" class="select">
+                    <option value="Awaiting Follow-up">Awaiting Follow-up / Investigation</option>
+                    <option value="Confirmed Error - Credit Approved">Confirmed Error — Credit Approved</option>
+                    <option value="Goodwill Adjustment Issued">Goodwill / Loyalty Adjustment Issued</option>
+                    <option value="Clarified - Legitimate Charge">Clarified — Legitimate Usage or Rate</option>
+                    <option value="Escalated to Supervisor">Escalated to Billing Supervisor</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="contactNotesInput">Representative Name &amp; Summary Notes</label>
+                  <input type="text" id="contactNotesInput" class="input" placeholder="e.g., Spoke with Dana; $13.99 duplicate credited to next cycle" maxlength="180" />
+                </div>
+
+                <div id="contactFormError" style="color:var(--danger-red);font-size:12.5px;margin-bottom:8px;"></div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;">Save Contact Record</button>
+              </form>
+
+              <div class="contact-log-list" id="contactLogsContainer"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Confirmation / Privacy Modal -->
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card">
+      <h3 id="confirmTitle">Confirm</h3>
+      <p id="confirmMessage" style="color:var(--text-secondary);font-size:14px;margin:0;"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEYS = {
+        BILLS: 'billtrap_bills_v1',
+        ACTIONS: 'billtrap_actions_v1',
+        SETTINGS: 'billtrap_settings_v1',
+        CHECKLIST: 'billtrap_checklist_v1'
+      };
+
+      const memoryFallback = {};
+
+      function readStorage(key, fallback) {
+        try {
+          const raw = window.localStorage.getItem(key);
+          return raw === null ? fallback : JSON.parse(raw);
+        } catch (err) {
+          return key in memoryFallback ? memoryFallback[key] : fallback;
+        }
+      }
+
+      function writeStorage(key, value) {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (err) {
+          memoryFallback[key] = value;
+        }
+      }
+
+      function round2(n) {
+        return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+      }
+
+      function fmtCurrency(val) {
+        if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
+        const n = Number(val);
+        const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (n < 0 ? '-$' : '$') + abs;
+      }
+
+      function fmtSignedCurrency(val) {
+        if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
+        const n = round2(Number(val));
+        return (n > 0 ? '+' : '') + fmtCurrency(n);
+      }
+
+      function escapeHtml(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function normalizeDesc(desc) {
+        return String(desc || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function getSampleBills() {
+        return [
+          { id: 'sample_elec_2026_06', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 114.20, lineItems: [{ id: 'li_nse_6_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_6_2', description: 'Electricity Usage (710 kWh)', amount: 89.40 }, { id: 'li_nse_6_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample summer baseline statement', isSample: true, createdAt: '2026-06-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_07', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 118.50, lineItems: [{ id: 'li_nse_7_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_7_2', description: 'Electricity Usage (740 kWh)', amount: 93.70 }, { id: 'li_nse_7_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample July statement', isSample: true, createdAt: '2026-07-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_08', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 121.00, lineItems: [{ id: 'li_nse_8_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_8_2', description: 'Electricity Usage (760 kWh)', amount: 96.20 }, { id: 'li_nse_8_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample August statement', isSample: true, createdAt: '2026-08-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_09', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 119.80, lineItems: [{ id: 'li_nse_9_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_9_2', description: 'Electricity Usage (750 kWh)', amount: 95.00 }, { id: 'li_nse_9_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample September statement', isSample: true, createdAt: '2026-09-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_10', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 164.70, lineItems: [{ id: 'li_nse_10_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_10_2', description: 'Electricity Usage (765 kWh)', amount: 96.80 }, { id: 'li_nse_10_3', description: 'Peak Demand Surcharge', amount: 29.90 }, { id: 'li_nse_10_4', description: 'Environmental Recovery Fee', amount: 10.00 }, { id: 'li_nse_10_5', description: 'Environmental Recovery Fee', amount: 10.00 }], notes: 'Sample October statement with new surcharge and repeated fee', isSample: true, createdAt: '2026-10-08T10:00:00.000Z' },
+          { id: 'sample_mob_2026_07', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_7_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_7_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-07-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_08', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_8_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_8_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-08-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_09', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_9_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_9_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-09-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_10', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 99.98, lineItems: [{ id: 'li_pw_10_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_10_2', description: 'Device Protection Plus', amount: 13.99 }, { id: 'li_pw_10_3', description: 'Device Protection Plus', amount: 13.99 }, { id: 'li_pw_10_4', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample October mobile bill with double add-on entry', isSample: true, createdAt: '2026-10-12T10:00:00.000Z' },
+          { id: 'sample_int_2026_06', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 65.00, lineItems: [{ id: 'li_vf_6_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }], notes: 'Sample promotional internet rate', isSample: true, createdAt: '2026-06-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_07', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 65.00, lineItems: [{ id: 'li_vf_7_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }], notes: 'Sample internet bill', isSample: true, createdAt: '2026-07-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_08', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 70.00, lineItems: [{ id: 'li_vf_8_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }, { id: 'li_vf_8_2', description: 'Network Infrastructure Fee', amount: 5.00 }], notes: 'Sample internet bill with new fee', isSample: true, createdAt: '2026-08-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_09', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 75.00, lineItems: [{ id: 'li_vf_9_1', description: 'Fiber 500 Symmetric Internet', amount: 70.00 }, { id: 'li_vf_9_2', description: 'Network Infrastructure Fee', amount: 5.00 }], notes: 'Sample gradual plan step-up', isSample: true, createdAt: '2026-09-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_10', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 84.99, lineItems: [{ id: 'li_vf_10_1', description: 'Fiber 500 Symmetric Internet', amount: 74.99 }, { id: 'li_vf_10_2', description: 'Network Infrastructure Fee', amount: 5.00 }, { id: 'li_vf_10_3', description: 'Wi-Fi Gateway Rental Fee', amount: 5.00 }], notes: 'Sample third consecutive monthly increase + router rental fee', isSample: true, createdAt: '2026-10-15T10:00:00.000Z' },
+          { id: 'sample_ins_2026_07', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 142.00, lineItems: [{ id: 'li_hs_7_1', description: 'Comprehensive Auto Policy', amount: 112.00 }, { id: 'li_hs_7_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-07-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_08', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 142.00, lineItems: [{ id: 'li_hs_8_1', description: 'Comprehensive Auto Policy', amount: 112.00 }, { id: 'li_hs_8_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-08-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_09', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 148.00, lineItems: [{ id: 'li_hs_9_1', description: 'Comprehensive Auto Policy', amount: 118.00 }, { id: 'li_hs_9_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample renewal adjustment', isSample: true, createdAt: '2026-09-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_10', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 173.50, lineItems: [{ id: 'li_hs_10_1', description: 'Comprehensive Auto Policy', amount: 137.00 }, { id: 'li_hs_10_2', description: 'Personal Property Rider', amount: 30.00 }, { id: 'li_hs_10_3', description: 'Paper Statement Admin Fee', amount: 6.50 }], notes: 'Sample October premium jump + paper statement fee', isSample: true, createdAt: '2026-10-20T10:00:00.000Z' }
+        ];
+      }
+
+      function getDefaultChecklist() {
+        return [
+          { id: 'chk_1', text: 'Compare current statement PDF line-by-line against prior month statement', done: true },
+          { id: 'chk_2', text: 'Locate account/policy ID and exact billing period dates before calling', done: false },
+          { id: 'chk_3', text: 'Ask the representative to explain the specific rate jump or repeated line item', done: false },
+          { id: 'chk_4', text: 'Request removal and statement credit if a duplicate or unrequested fee is confirmed', done: false },
+          { id: 'chk_5', text: 'Record representative name, date, reference number, and promised resolution', done: false }
+        ];
+      }
+
+      function getSettings() {
+        const saved = readStorage(STORAGE_KEYS.SETTINGS, null);
+        if (!saved || typeof saved !== 'object') {
+          return { thresholdPercent: 15, comparisonMode: 'provider', sampleInitialized: false };
+        }
+        const tp = Number(saved.thresholdPercent);
+        return {
+          thresholdPercent: Number.isFinite(tp) && tp >= 1 && tp <= 100 ? tp : 15,
+          comparisonMode: saved.comparisonMode === 'category' ? 'category' : 'provider',
+          sampleInitialized: Boolean(saved.sampleInitialized)
+        };
+      }
+
+      function ensureInitialized() {
+        const settings = getSettings();
+        if (!settings.sampleInitialized && readStorage(STORAGE_KEYS.BILLS, null) === null) {
+          writeStorage(STORAGE_KEYS.BILLS, getSampleBills());
+          writeStorage(STORAGE_KEYS.SETTINGS, Object.assign({}, settings, { sampleInitialized: true }));
+        }
+        if (readStorage(STORAGE_KEYS.CHECKLIST, null) === null) {
+          writeStorage(STORAGE_KEYS.CHECKLIST, getDefaultChecklist());
+        }
+      }
+
+      function getBills() {
+        ensureInitialized();
+        const raw = readStorage(STORAGE_KEYS.BILLS, []);
+        return Array.isArray(raw) ? raw.filter(b => b && typeof b === 'object' && Number.isFinite(Number(b.totalAmount)) && Number(b.totalAmount) >= 0) : [];
+      }
+
+      function getActionsMap() {
+        const raw = readStorage(STORAGE_KEYS.ACTIONS, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+      }
+
+      function saveActionsMap(map) {
+        writeStorage(STORAGE_KEYS.ACTIONS, map);
+      }
+
+      function getChecklist() {
+        const raw = readStorage(STORAGE_KEYS.CHECKLIST, null);
+        return Array.isArray(raw) ? raw : getDefaultChecklist();
+      }
+
+      function saveChecklist(list) {
+        writeStorage(STORAGE_KEYS.CHECKLIST, list);
+      }
+
+      function analyzeAllBills(bills, settings) {
+        const threshold = Number(settings.thresholdPercent) || 15;
+        const compMode = settings.comparisonMode === 'category' ? 'category' : 'provider';
+
+        const chronological = bills.slice().sort((a, b) => {
+          if (a.billingPeriod !== b.billingPeriod) return a.billingPeriod.localeCompare(b.billingPeriod);
+          return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+        });
+
+        const byProvider = {};
+        const byCategory = {};
+        const findings = [];
+        const billSavingsMap = {};
+
+        chronological.forEach(bill => {
+          const pk = bill.provider.toLowerCase().trim();
+          const ck = bill.category.toLowerCase().trim();
+          const provHist = byProvider[pk] || [];
+          const catHist = byCategory[ck] || [];
+
+          const prevProv = provHist.length > 0 ? provHist[provHist.length - 1] : null;
+          const prevCat = catHist.length > 0 ? catHist[catHist.length - 1] : null;
+          const baseline = compMode === 'category' ? prevCat : prevProv;
+
+          let absChange = null;
+          let pctChange = null;
+          let annualized = null;
+
+          if (baseline) {
+            absChange = round2(bill.totalAmount - baseline.totalAmount);
+            if (baseline.totalAmount > 0) pctChange = round2((absChange / baseline.totalAmount) * 100);
+            if (absChange > 0 && bill.billingCycle === 'monthly') annualized = round2(absChange * 12);
+          }
+
+          let dupSum = 0;
+          const groups = {};
+          (bill.lineItems || []).forEach(li => {
+            const norm = normalizeDesc(li.description);
+            if (!norm || li.amount <= 0) return;
+            const k = norm + '__' + Number(li.amount).toFixed(2);
+            if (!groups[k]) groups[k] = { norm, amount: Number(li.amount), items: [] };
+            groups[k].items.push(li);
+          });
+
+          const billFindings = [];
+
+          const dupItemIds = new Set();
+          Object.keys(groups).forEach(k => {
+            const g = groups[k];
+            if (g.items.length >= 2) {
+              g.items.forEach(it => dupItemIds.add(it.id));
+              const extra = round2((g.items.length - 1) * g.amount);
+              dupSum = round2(dupSum + extra);
+              const f = {
+                id: 'dup_' + bill.id + '_' + g.norm.replace(/\s+/g, '_').slice(0, 24),
+                billId: bill.id,
+                provider: bill.provider,
+                category: bill.category,
+                billingPeriod: bill.billingPeriod,
+                billAmount: bill.totalAmount,
+                prevAmount: baseline ? baseline.totalAmount : null,
+                isSample: bill.isSample,
+                type: 'possible_duplicate',
+                severity: 'high',
+                badge: 'Possible duplicate',
+                title: 'Repeated line item: ' + g.items[0].description + ' (' + fmtCurrency(g.amount) + ' × ' + g.items.length + ')',
+                explanation: 'Charge "' + g.items[0].description + '" for ' + fmtCurrency(g.amount) + ' appears ' + g.items.length + ' times with matching normalized description and amount. Check whether multiple lines/units apply or if it was billed twice.',
+                estimatedSavings: extra
+              };
+              findings.push(f);
+              billFindings.push(f);
+            }
+          });
+
+          let incDelta = 0;
+          if (baseline && baseline.totalAmount > 0 && absChange > 0 && pctChange !== null && pctChange >= threshold) {
+            incDelta = absChange;
+            const f = {
+              id: 'inc_' + bill.id,
+              billId: bill.id,
+              provider: bill.provider,
+              category: bill.category,
+              billingPeriod: bill.billingPeriod,
+              billAmount: bill.totalAmount,
+              prevAmount: baseline.totalAmount,
+              isSample: bill.isSample,
+              type: 'unusual_increase',
+              severity: pctChange >= threshold * 1.75 || absChange >= 35 ? 'high' : 'warning',
+              badge: 'Review recommended',
+              title: 'Unusual increase of +' + pctChange.toFixed(1) + '% (' + fmtSignedCurrency(absChange) + ')',
+              explanation: 'Total statement increased from ' + fmtCurrency(baseline.totalAmount) + ' (' + baseline.billingPeriod + ') to ' + fmtCurrency(bill.totalAmount) + ', exceeding your ' + threshold + '% alert threshold.' + (annualized ? ' Continuing at this monthly rate adds ~' + fmtCurrency(annualized) + '/yr.' : ''),
+              estimatedSavings: absChange
+            };
+            findings.push(f);
+            billFindings.push(f);
+          }
+
+          let feeSum = 0;
+          if (prevProv && (prevProv.lineItems || []).length > 0 && (bill.lineItems || []).length > 0) {
+            const prevNorms = new Set(prevProv.lineItems.map(li => normalizeDesc(li.description)));
+            const feeRx = /\b(fee|surcharge|rental|protection|admin|administrative|recovery|maintenance|infrastructure|gateway|router|late|adjustment|addon|add on|rider)\b/i;
+            const seen = new Set();
+            bill.lineItems.forEach(li => {
+              const norm = normalizeDesc(li.description);
+              if (norm && li.amount > 0 && !dupItemIds.has(li.id) && !prevNorms.has(norm) && feeRx.test(li.description) && !seen.has(norm)) {
+                seen.add(norm);
+                feeSum = round2(feeSum + Number(li.amount));
+                const f = {
+                  id: 'fee_' + bill.id + '_' + norm.replace(/\s+/g, '_').slice(0, 24),
+                  billId: bill.id,
+                  provider: bill.provider,
+                  category: bill.category,
+                  billingPeriod: bill.billingPeriod,
+                  billAmount: bill.totalAmount,
+                  prevAmount: prevProv.totalAmount,
+                  isSample: bill.isSample,
+                  type: 'unexpected_fee',
+                  severity: 'warning',
+                  badge: 'Review recommended',
+                  title: 'New line item: ' + li.description + ' (' + fmtCurrency(li.amount) + ')',
+                  explanation: 'Line item "' + li.description + '" (' + fmtCurrency(li.amount) + ') did not appear on your prior ' + bill.provider + ' statement (' + prevProv.billingPeriod + ').',
+                  estimatedSavings: round2(li.amount)
+                };
+                findings.push(f);
+                billFindings.push(f);
+              }
+            });
+          }
+
+          const allProvBills = chronological.filter(x => x.provider.toLowerCase().trim() === pk);
+          const myIdx = allProvBills.findIndex(x => x.id === bill.id);
+          const nextProv = myIdx !== -1 && myIdx + 1 < allProvBills.length ? allProvBills[myIdx + 1] : null;
+          const superseded = Boolean(nextProv && nextProv.totalAmount > bill.totalAmount);
+
+          const chain = provHist.concat([bill]);
+          let streak = 0;
+          for (let i = chain.length - 1; i >= 1; i--) {
+            if (chain[i].totalAmount > chain[i - 1].totalAmount) streak++;
+            else break;
+          }
+          let recDelta = 0;
+          if (streak >= 2 && !superseded) {
+            const startBill = chain[chain.length - 1 - streak];
+            const cumDiff = round2(bill.totalAmount - startBill.totalAmount);
+            recDelta = round2(bill.totalAmount - prevProv.totalAmount);
+            const f = {
+              id: 'rec_' + bill.id,
+              billId: bill.id,
+              provider: bill.provider,
+              category: bill.category,
+              billingPeriod: bill.billingPeriod,
+              billAmount: bill.totalAmount,
+              prevAmount: startBill.totalAmount,
+              isSample: bill.isSample,
+              type: 'recurring_increase',
+              severity: 'warning',
+              badge: 'Recurring increase',
+              title: streak + ' consecutive increases from ' + bill.provider,
+              explanation: bill.provider + ' increased across ' + streak + ' consecutive billing periods (' + startBill.billingPeriod + ' ' + fmtCurrency(startBill.totalAmount) + ' → ' + bill.billingPeriod + ' ' + fmtCurrency(bill.totalAmount) + ', cumulative ' + fmtSignedCurrency(cumDiff) + ').',
+              estimatedSavings: cumDiff
+            };
+            findings.push(f);
+            billFindings.push(f);
+          }
+
+          if (billFindings.length > 0) {
+            billSavingsMap[bill.id] = {
+              dedupAmount: round2(Math.min(bill.totalAmount, Math.max(incDelta, dupSum + feeSum, recDelta))),
+              findingIds: billFindings.map(x => x.id)
+            };
+          }
+
+          provHist.push(bill);
+          byProvider[pk] = provHist;
+          catHist.push(bill);
+          byCategory[ck] = catHist;
+        });
+
+        // Sort newest period first, high severity first
+        findings.sort((a, b) => {
+          if (a.billingPeriod !== b.billingPeriod) return b.billingPeriod.localeCompare(a.billingPeriod);
+          if (a.severity !== b.severity) return a.severity === 'high' ? -1 : 1;
+          return b.estimatedSavings - a.estimatedSavings;
+        });
+
+        return { findings, billSavingsMap };
+      }
+
+      /* =====================================================================
+         ACTION CENTER STATE & UI CONTROLLER
+         ===================================================================== */
+      const urlParams = new URLSearchParams(window.location.search);
+      let focusedBillFilter = urlParams.get('bill') || null;
+      let activeStatusFilter = 'ALL';
+      let activeToolTab = 'letter';
+      let selectedFindingId = null;
+      let letterDirty = false;
+      let pendingModalFn = null;
+
+      function showToast(msg) {
+        const region = document.getElementById('toastRegion');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = msg;
+        region.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 3200);
+      }
+
+      function openConfirm(title, msg, confirmLabel, cls, fn, hideCancel) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = msg;
+        const ok = document.getElementById('confirmOkBtn');
+        ok.textContent = confirmLabel || 'Confirm';
+        ok.className = 'btn ' + (cls || 'btn-danger');
+        document.getElementById('confirmCancelBtn').style.display = hideCancel ? 'none' : 'inline-flex';
+        pendingModalFn = fn || null;
+        document.getElementById('confirmModal').classList.add('open');
+      }
+
+      function closeConfirm() {
+        document.getElementById('confirmModal').classList.remove('open');
+        pendingModalFn = null;
+      }
+
+      document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirm);
+      document.getElementById('confirmOkBtn').addEventListener('click', function () {
+        const fn = pendingModalFn;
+        closeConfirm();
+        if (typeof fn === 'function') fn();
+      });
+
+      document.getElementById('mobileMenuBtn').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarBackdrop').classList.toggle('open');
+      });
+      document.getElementById('sidebarBackdrop').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.remove('open');
+        this.classList.remove('open');
+      });
+
+      document.getElementById('openPrivacyModalBtn').addEventListener('click', function () {
+        openConfirm(
+          'Browser-Local Data & Privacy',
+          'Action Center findings, letters, checklists, and contact reference logs stay inside your browser localStorage. Do not enter sensitive bank credentials, SSNs, or payment card numbers.',
+          'Close',
+          'btn-primary',
+          null,
+          true
+        );
+      });
+
+      document.getElementById('clearBillFilterBtn').addEventListener('click', function () {
+        focusedBillFilter = null;
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, '', './action-center.html');
+        }
+        renderAll();
+      });
+
+      function getFindingActionRecord(actionsMap, findingId) {
+        const rec = actionsMap[findingId];
+        return {
+          status: rec && rec.status ? rec.status : 'unreviewed', // unreviewed | reviewed | resolved | dismissed
+          verification: rec && rec.verification ? rec.verification : 'suspected', // suspected | confirmed_error | verified_valid
+          contacts: rec && Array.isArray(rec.contacts) ? rec.contacts : []
+        };
+      }
+
+      function updateFindingAction(findingId, patch) {
+        const map = getActionsMap();
+        const cur = getFindingActionRecord(map, findingId);
+        map[findingId] = Object.assign({}, cur, patch, { updatedAt: new Date().toISOString() });
+        saveActionsMap(map);
+      }
+
+      // Generate Letter Text
+      function buildLetterTemplate(finding, actionRec) {
+        if (!finding) {
+          return 'Select any flagged charge or unusual increase from the queue on the left to generate a tailored provider inquiry letter.';
+        }
+        const tone = document.getElementById('letterToneSelect').value;
+        const customerName = document.getElementById('letterCustomerName').value.trim() || '[Your Name]';
+        const accountRef = document.getElementById('letterAccountRef').value.trim() || '[Account / Policy Reference]';
+        const goal = document.getElementById('letterResolutionGoal').value;
+        const today = new Date().toISOString().slice(0, 10);
+
+        const subjectLine = tone === 'dispute'
+          ? 'Subject: Billing Inquiry & Adjustment Request — ' + finding.provider + ' (' + finding.billingPeriod + ')'
+          : (tone === 'retention'
+              ? 'Subject: Recurring Monthly Rate Review — ' + finding.provider + ' (' + finding.billingPeriod + ')'
+              : 'Subject: Request for Statement Clarification — ' + finding.provider + ' (' + finding.billingPeriod + ')');
+
+        const intro = tone === 'dispute'
+          ? 'I am writing to request a formal review of my ' + finding.billingPeriod + ' statement (Total: ' + fmtCurrency(finding.billAmount) + ') regarding a potential billing discrepancy.'
+          : (tone === 'retention'
+              ? 'I have been reviewing my recent ' + finding.provider + ' statements and noticed an ongoing increase in my monthly charges as of ' + finding.billingPeriod + ' (' + fmtCurrency(finding.billAmount) + ').'
+              : 'I am reviewing my ' + finding.billingPeriod + ' statement (Total: ' + fmtCurrency(finding.billAmount) + ') and would appreciate clarification on the following item before my next billing cycle:');
+
+        const statusNote = actionRec && actionRec.verification === 'confirmed_error'
+          ? 'Based on my statement review, this appears to be a billing error totaling approximately ' + fmtCurrency(finding.estimatedSavings) + '.'
+          : 'Estimated statement impact under review: ' + fmtCurrency(finding.estimatedSavings) + '.';
+
+        return [
+          'Date: ' + today,
+          'To: ' + finding.provider + ' Customer Billing Support',
+          'Account Reference: ' + accountRef,
+          subjectLine,
+          '',
+          'Hello ' + finding.provider + ' Billing Team,',
+          '',
+          intro,
+          '',
+          'Flagged Item Summary:',
+          '- Statement Period: ' + finding.billingPeriod,
+          '- Issue Identified: ' + finding.title,
+          '- Details: ' + finding.explanation,
+          '- ' + statusNote,
+          '',
+          'Requested Resolution:',
+          goal + '.',
+          '',
+          'Please provide a written response or reference number confirming your review of this ' + finding.billingPeriod + ' charge.',
+          '',
+          'Thank you for your assistance,',
+          customerName
+        ].join('\n');
+      }
+
+      // Status filter tabs
+      document.querySelectorAll('[data-status-filter]').forEach(btn => {
+        btn.addEventListener('click', function () {
+          activeStatusFilter = this.getAttribute('data-status-filter');
+          document.querySelectorAll('[data-status-filter]').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-status-filter') === activeStatusFilter);
+          });
+          renderAll();
+        });
+      });
+
+      document.getElementById('findingSearchInput').addEventListener('input', renderAll);
+
+      // Tool sub-tabs
+      document.querySelectorAll('[data-tool-tab]').forEach(btn => {
+        btn.addEventListener('click', function () {
+          activeToolTab = this.getAttribute('data-tool-tab');
+          document.querySelectorAll('[data-tool-tab]').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-tool-tab') === activeToolTab);
+          });
+          document.getElementById('toolViewLetter').style.display = activeToolTab === 'letter' ? 'block' : 'none';
+          document.getElementById('toolViewChecklist').style.display = activeToolTab === 'checklist' ? 'block' : 'none';
+          document.getElementById('toolViewContacts').style.display = activeToolTab === 'contacts' ? 'block' : 'none';
+        });
+      });
+
+      // Letter customization listeners
+      ['letterToneSelect', 'letterCustomerName', 'letterAccountRef', 'letterResolutionGoal'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', function () {
+          letterDirty = false;
+          refreshLetterBox();
+        });
+        el.addEventListener('change', function () {
+          letterDirty = false;
+          refreshLetterBox();
+        });
+      });
+
+      document.getElementById('letterOutputArea').addEventListener('input', function () {
+        letterDirty = true;
+      });
+
+      document.getElementById('regenerateLetterBtn').addEventListener('click', function () {
+        letterDirty = false;
+        refreshLetterBox();
+        showToast('Reset letter template from selected finding.');
+      });
+
+      document.getElementById('copyLetterBtn').addEventListener('click', function () {
+        const text = document.getElementById('letterOutputArea').value;
+        if (!text.trim()) {
+          showToast('Letter text is empty.');
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            () => showToast('Copied letter to clipboard.'),
+            () => fallbackCopy(text)
+          );
+        } else {
+          fallbackCopy(text);
+        }
+      });
+
+      function fallbackCopy(text) {
+        const area = document.getElementById('letterOutputArea');
+        area.focus();
+        area.select();
+        try {
+          document.execCommand('copy');
+          showToast('Copied letter to clipboard.');
+        } catch (err) {
+          showToast('Press Ctrl+C / Cmd+C to copy the selected letter.');
+        }
+      }
+
+      document.getElementById('downloadLetterBtn').addEventListener('click', function () {
+        const text = document.getElementById('letterOutputArea').value;
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'provider-inquiry-letter-' + new Date().toISOString().slice(0, 10) + '.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Downloaded inquiry letter (.txt).');
+      });
+
+      // Checklist handlers
+      function renderChecklist() {
+        const list = getChecklist();
+        const container = document.getElementById('checklistContainer');
+        container.innerHTML = list.map(item => (
+          '<div class="check-row' + (item.done ? ' done' : '') + '">' +
+            '<label>' +
+              '<input type="checkbox" class="js-chk-toggle" data-id="' + escapeHtml(item.id) + '"' + (item.done ? ' checked' : '') + ' />' +
+              '<span>' + escapeHtml(item.text) + '</span>' +
+            '</label>' +
+            '<button type="button" class="btn btn-secondary btn-sm js-chk-del" data-id="' + escapeHtml(item.id) + '" aria-label="Remove step">&times;</button>' +
+          '</div>'
+        )).join('');
+
+        container.querySelectorAll('.js-chk-toggle').forEach(chk => {
+          chk.addEventListener('change', function () {
+            const id = this.getAttribute('data-id');
+            const updated = getChecklist().map(it => it.id === id ? Object.assign({}, it, { done: this.checked }) : it);
+            saveChecklist(updated);
+            renderChecklist();
+          });
+        });
+
+        container.querySelectorAll('.js-chk-del').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const id = this.getAttribute('data-id');
+            saveChecklist(getChecklist().filter(it => it.id !== id));
+            renderChecklist();
+          });
+        });
+      }
+
+      document.getElementById('addChecklistForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const inp = document.getElementById('newCheckItemInput');
+        const text = inp.value.trim();
+        if (!text) return;
+        const list = getChecklist();
+        list.push({ id: 'chk_' + Date.now(), text, done: false });
+        saveChecklist(list);
+        inp.value = '';
+        renderChecklist();
+        showToast('Added checklist step.');
+      });
+
+      // Contact Log Form
+      document.getElementById('contactDateInput').value = new Date().toISOString().slice(0, 10);
+
+      document.getElementById('contactLogForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const errBox = document.getElementById('contactFormError');
+        errBox.textContent = '';
+
+        if (!selectedFindingId) {
+          errBox.textContent = 'Select a finding on the left before logging a provider contact.';
+          return;
+        }
+
+        const date = document.getElementById('contactDateInput').value.trim();
+        const channel = document.getElementById('contactChannelInput').value;
+        const refNum = document.getElementById('contactRefInput').value.trim();
+        const rawCredit = document.getElementById('contactCreditInput').value.trim();
+        const creditAmt = rawCredit === '' ? 0 : Number(rawCredit);
+        const outcome = document.getElementById('contactOutcomeInput').value;
+        const notes = document.getElementById('contactNotesInput').value.trim();
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          errBox.textContent = 'Select a valid contact date.';
+          return;
+        }
+        if (!refNum) {
+          errBox.textContent = 'Enter a call/chat reference or ticket ID (e.g., NONE if not provided).';
+          return;
+        }
+        if (!Number.isFinite(creditAmt) || creditAmt < 0 || creditAmt > 100000) {
+          errBox.textContent = 'Credit amount must be zero or a positive number.';
+          return;
+        }
+
+        const map = getActionsMap();
+        const rec = getFindingActionRecord(map, selectedFindingId);
+        const newEntry = {
+          id: 'log_' + Date.now(),
+          date,
+          channel,
+          refNumber: refNum,
+          creditAmount: round2(creditAmt),
+          outcome,
+          notes
+        };
+
+        const nextStatus = outcome === 'Confirmed Error - Credit Approved' || outcome === 'Goodwill Adjustment Issued'
+          ? 'resolved'
+          : (rec.status === 'unreviewed' ? 'reviewed' : rec.status);
+        const nextVerification = outcome === 'Confirmed Error - Credit Approved'
+          ? 'confirmed_error'
+          : (outcome === 'Clarified - Legitimate Charge' ? 'verified_valid' : rec.verification);
+
+        updateFindingAction(selectedFindingId, {
+          status: nextStatus,
+          verification: nextVerification,
+          contacts: [newEntry].concat(rec.contacts)
+        });
+
+        document.getElementById('contactRefInput').value = '';
+        document.getElementById('contactCreditInput').value = '';
+        document.getElementById('contactNotesInput').value = '';
+        renderAll();
+        showToast('Logged provider contact (' + refNum + ').');
+      });
+
+      function refreshLetterBox() {
+        if (letterDirty) return;
+        const analysis = analyzeAllBills(getBills(), getSettings());
+        const finding = analysis.findings.find(f => f.id === selectedFindingId) || null;
+        const rec = finding ? getFindingActionRecord(getActionsMap(), finding.id) : null;
+        document.getElementById('letterOutputArea').value = buildLetterTemplate(finding, rec);
+      }
+
+      function renderContactLogs(finding) {
+        const container = document.getElementById('contactLogsContainer');
+        if (!finding) {
+          container.innerHTML = '<p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">Select a finding to view or log provider contacts.</p>';
+          return;
+        }
+        const rec = getFindingActionRecord(getActionsMap(), finding.id);
+        if (rec.contacts.length === 0) {
+          container.innerHTML = '<p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">No provider contacts logged for this item yet.</p>';
+          return;
+        }
+        container.innerHTML = rec.contacts.map(c => (
+          '<div class="log-entry">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+              '<div>' +
+                '<strong class="tabular">' + escapeHtml(c.date) + '</strong> · ' + escapeHtml(c.channel) + ' · <span class="tabular text-lime">Ref: ' + escapeHtml(c.refNumber) + '</span>' +
+              '</div>' +
+              '<button type="button" class="btn btn-danger btn-sm js-del-log" data-log-id="' + escapeHtml(c.id) + '" style="padding:3px 8px;min-height:26px;">Delete</button>' +
+            '</div>' +
+            '<div style="margin-top:4px;font-weight:600;">' + escapeHtml(c.outcome) +
+              (c.creditAmount > 0 ? ' · <span class="tabular text-lime">Credit: ' + fmtCurrency(c.creditAmount) + '</span>' : '') +
+            '</div>' +
+            (c.notes ? '<div style="margin-top:4px;color:var(--text-secondary);">' + escapeHtml(c.notes) + '</div>' : '') +
+          '</div>'
+        )).join('');
+
+        container.querySelectorAll('.js-del-log').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const logId = this.getAttribute('data-log-id');
+            openConfirm('Delete Contact Log?', 'Remove this provider contact entry?', 'Delete', 'btn-danger', function () {
+              const cur = getFindingActionRecord(getActionsMap(), finding.id);
+              updateFindingAction(finding.id, { contacts: cur.contacts.filter(x => x.id !== logId) });
+              renderAll();
+              showToast('Removed contact entry.');
+            }, false);
+          });
+        });
+      }
+
+      // Export Findings Report (.txt & .csv)
+      function exportReport(format) {
+        const bills = getBills();
+        const settings = getSettings();
+        const analysis = analyzeAllBills(bills, settings);
+        const actionsMap = getActionsMap();
+
+        if (analysis.findings.length === 0) {
+          showToast('No flagged findings available to export.');
+          return;
+        }
+
+        if (format === 'csv') {
+          const esc = v => {
+            const s = String(v == null ? '' : v);
+            return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+          };
+          const header = [
+            'Billing Period', 'Provider', 'Category', 'Warning Label', 'Issue Title',
+            'Verification Classification', 'Workflow Status', 'Estimated Monthly Impact (USD)',
+            'Confirmed Credits Logged (USD)', 'Contact Reference Numbers', 'Explanation'
+          ];
+          const rows = [header.map(esc).join(',')];
+          analysis.findings.forEach(f => {
+            const rec = getFindingActionRecord(actionsMap, f.id);
+            const credits = round2(rec.contacts.reduce((s, c) => s + (Number(c.creditAmount) || 0), 0));
+            const refs = rec.contacts.map(c => c.date + ' ' + c.refNumber + ' (' + c.outcome + ')').join('; ');
+            rows.push([
+              f.billingPeriod, f.provider, f.category, f.badge, f.title,
+              rec.verification === 'confirmed_error' ? 'Confirmed Error' : (rec.verification === 'verified_valid' ? 'Verified Valid Charge' : 'Suspected Issue (Unverified)'),
+              rec.status,
+              f.estimatedSavings.toFixed(2),
+              credits.toFixed(2),
+              refs,
+              f.explanation
+            ].map(esc).join(','));
+          });
+          const blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'billtrap-findings-report-' + new Date().toISOString().slice(0, 10) + '.csv';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Exported findings report (.csv).');
+          return;
+        }
+
+        // Plain-text structured report
+        const suspected = [];
+        const confirmed = [];
+        analysis.findings.forEach(f => {
+          const rec = getFindingActionRecord(actionsMap, f.id);
+          if (rec.verification === 'confirmed_error') confirmed.push({ f, rec });
+          else suspected.push({ f, rec });
+        });
+
+        const lines = [
+          'BILLTRAP — BILLING REVIEW & FINDINGS REPORT',
+          'Generated: ' + new Date().toISOString().slice(0, 10),
+          'Unusual Increase Threshold: ' + settings.thresholdPercent + '%',
+          '====================================================================',
+          'NOTE: Suspected issues are automated flags for customer review and do',
+          'not constitute proof of billing error unless verified with provider.',
+          '',
+          '1. CONFIRMED BILLING ERRORS (' + confirmed.length + ')',
+          '--------------------------------------------------------------------'
+        ];
+
+        if (confirmed.length === 0) {
+          lines.push('None marked as confirmed error yet.');
+        } else {
+          confirmed.forEach((item, i) => {
+            lines.push((i + 1) + '. [' + item.f.billingPeriod + '] ' + item.f.provider + ' — ' + item.f.title);
+            lines.push('   Status: ' + item.rec.status.toUpperCase() + ' | Est. Impact: ' + fmtCurrency(item.f.estimatedSavings));
+            lines.push('   Details: ' + item.f.explanation);
+            item.rec.contacts.forEach(c => {
+              lines.push('   Contact Log: ' + c.date + ' (' + c.channel + ') Ref #' + c.refNumber + ' -> ' + c.outcome + (c.creditAmount > 0 ? ' [Credit: ' + fmtCurrency(c.creditAmount) + ']' : ''));
+            });
+            lines.push('');
+          });
+        }
+
+        lines.push('');
+        lines.push('2. SUSPECTED ISSUES / REVIEW QUEUE (' + suspected.length + ')');
+        lines.push('--------------------------------------------------------------------');
+        suspected.forEach((item, i) => {
+          lines.push((i + 1) + '. [' + item.f.billingPeriod + '] ' + item.f.provider + ' (' + item.f.badge + ') — ' + item.f.title);
+          lines.push('   Classification: ' + (item.rec.verification === 'verified_valid' ? 'Verified Valid Charge' : 'Suspected / Unverified') + ' | Status: ' + item.rec.status.toUpperCase());
+          lines.push('   Est. Reviewable Amount: ' + fmtCurrency(item.f.estimatedSavings));
+          lines.push('   Details: ' + item.f.explanation);
+          item.rec.contacts.forEach(c => {
+            lines.push('   Contact Log: ' + c.date + ' (' + c.channel + ') Ref #' + c.refNumber + ' -> ' + c.outcome);
+          });
+          lines.push('');
+        });
+
+        const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'billtrap-findings-report-' + new Date().toISOString().slice(0, 10) + '.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Exported findings report (.txt).');
+      }
+
+      document.getElementById('exportReportTxtBtn').addEventListener('click', function () { exportReport('txt'); });
+      document.getElementById('exportReportCsvBtn').addEventListener('click', function () { exportReport('csv'); });
+
+      function renderAll() {
+        const bills = getBills();
+        const settings = getSettings();
+        const analysis = analyzeAllBills(bills, settings);
+        const actionsMap = getActionsMap();
+
+        // Sidebar counts
+        const openCount = analysis.findings.filter(f => {
+          const rec = getFindingActionRecord(actionsMap, f.id);
+          return rec.status === 'unreviewed' || rec.status === 'reviewed';
+        }).length;
+
+        document.getElementById('navBillCount').textContent = String(bills.length);
+        document.getElementById('navOpenFindings').textContent = String(openCount);
+        const sampleCount = bills.filter(b => b.isSample).length;
+        document.getElementById('sidebarSampleIndicator').textContent = sampleCount > 0 ? (sampleCount + ' Sample') : 'Local';
+
+        // KPI aggregates
+        let suspectedOpenCount = 0;
+        let confirmedErrorCount = 0;
+        let totalResolvedCredits = 0;
+        let totalContactsLogged = 0;
+
+        analysis.findings.forEach(f => {
+          const rec = getFindingActionRecord(actionsMap, f.id);
+          if (rec.verification === 'confirmed_error') confirmedErrorCount++;
+          else if (rec.status !== 'dismissed' && rec.status !== 'resolved' && rec.verification === 'suspected') {
+            suspectedOpenCount++;
+          }
+          rec.contacts.forEach(c => {
+            totalContactsLogged++;
+            totalResolvedCredits = round2(totalResolvedCredits + (Number(c.creditAmount) || 0));
+          });
+        });
+
+        let activePotentialSavings = 0;
+        Object.keys(analysis.billSavingsMap).forEach(billId => {
+          const info = analysis.billSavingsMap[billId];
+          const anyActive = info.findingIds.some(fid => {
+            const rec = getFindingActionRecord(actionsMap, fid);
+            return rec.status !== 'dismissed' && rec.status !== 'resolved' && rec.verification !== 'verified_valid';
+          });
+          if (anyActive) {
+            activePotentialSavings = round2(activePotentialSavings + info.dedupAmount);
+          }
+        });
+
+        document.getElementById('kpiSuspectedCount').textContent = String(suspectedOpenCount);
+        document.getElementById('kpiConfirmedCount').textContent = String(confirmedErrorCount);
+        document.getElementById('kpiPotentialSavings').textContent = fmtCurrency(activePotentialSavings);
+        document.getElementById('kpiResolvedCredits').textContent = fmtCurrency(totalResolvedCredits);
+        document.getElementById('kpiContactLogCount').textContent = totalContactsLogged + ' provider ' + (totalContactsLogged === 1 ? 'contact' : 'contacts') + ' logged';
+
+        // Focused bill filter indicator
+        const clearBillBtn = document.getElementById('clearBillFilterBtn');
+        clearBillBtn.style.display = focusedBillFilter ? 'inline-flex' : 'none';
+
+        // Filter findings queue
+        const q = document.getElementById('findingSearchInput').value.trim().toLowerCase();
+        const filtered = analysis.findings.filter(f => {
+          if (focusedBillFilter && f.billId !== focusedBillFilter) return false;
+          const rec = getFindingActionRecord(actionsMap, f.id);
+          if (activeStatusFilter === 'confirmed_only') {
+            if (rec.verification !== 'confirmed_error') return false;
+          } else if (activeStatusFilter !== 'ALL' && rec.status !== activeStatusFilter) {
+            return false;
+          }
+          if (q) {
+            const hay = (f.provider + ' ' + f.category + ' ' + f.billingPeriod + ' ' + f.title + ' ' + f.explanation).toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        // Auto-select first finding if none selected
+        if (!selectedFindingId || !analysis.findings.some(f => f.id === selectedFindingId)) {
+          selectedFindingId = filtered.length > 0 ? filtered[0].id : (analysis.findings[0] ? analysis.findings[0].id : null);
+          letterDirty = false;
+        }
+
+        document.getElementById('findingsShownCount').textContent = filtered.length + ' ' + (filtered.length === 1 ? 'issue' : 'issues');
+
+        const queueEl = document.getElementById('findingsQueueContainer');
+        if (analysis.findings.length === 0) {
+          queueEl.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Flagged Billing Issues</h3>' +
+              '<p>No unusual increases or possible duplicate charges are currently detected under your ' + settings.thresholdPercent + '% threshold.</p>' +
+              '<a href="./billtrap.html" class="btn btn-primary">Open Bill Analyzer</a>' +
+            '</div>';
+        } else if (filtered.length === 0) {
+          queueEl.innerHTML =
+            '<div class="empty-state">' +
+              '<h3>No Issues Match This Filter</h3>' +
+              '<p>Switch status tabs or clear your search query to see other findings.</p>' +
+            '</div>';
+        } else {
+          queueEl.innerHTML = filtered.map(f => {
+            const rec = getFindingActionRecord(actionsMap, f.id);
+            const isSelected = f.id === selectedFindingId;
+            const badgeCls = f.severity === 'high' ? 'text-red' : 'text-amber';
+            const verifLabel = rec.verification === 'confirmed_error'
+              ? '<span class="text-red">Confirmed Error</span>'
+              : (rec.verification === 'verified_valid'
+                  ? '<span class="text-lime">Verified Valid</span>'
+                  : '<span class="text-amber">Suspected Issue</span>');
+
+            return (
+              '<article class="finding-card' + (isSelected ? ' selected' : '') + '">' +
+                '<div class="finding-head">' +
+                  '<div>' +
+                    '<div class="finding-kicker">' +
+                      '<strong class="' + badgeCls + '">' + escapeHtml(f.badge) + '</strong>' +
+                      '<span aria-hidden="true">·</span>' +
+                      '<span>' + escapeHtml(f.provider) + '</span>' +
+                      '<span aria-hidden="true">·</span>' +
+                      '<span class="tabular">' + escapeHtml(f.billingPeriod) + '</span>' +
+                      '<span aria-hidden="true">·</span>' +
+                      verifLabel +
+                      (f.isSample ? '<span aria-hidden="true">·</span><span class="text-muted">Sample</span>' : '') +
+                    '</div>' +
+                    '<h3 class="finding-title">' + escapeHtml(f.title) + '</h3>' +
+                  '</div>' +
+                  '<div style="text-align:right;flex-shrink:0;">' +
+                    '<div class="tabular text-lime" style="font-weight:700;font-size:15px;">' + fmtCurrency(f.estimatedSavings) + '</div>' +
+                    '<div style="font-size:11px;color:var(--text-muted);">Est. impact</div>' +
+                  '</div>' +
+                '</div>' +
+
+                '<p class="finding-explanation">' + escapeHtml(f.explanation) + '</p>' +
+
+                '<div class="finding-controls">' +
+                  '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                    '<select class="select select-compact js-status-sel" data-id="' + escapeHtml(f.id) + '" aria-label="Review status">' +
+                      '<option value="unreviewed"' + (rec.status === 'unreviewed' ? ' selected' : '') + '>Status: Needs Review</option>' +
+                      '<option value="reviewed"' + (rec.status === 'reviewed' ? ' selected' : '') + '>Status: Reviewed</option>' +
+                      '<option value="resolved"' + (rec.status === 'resolved' ? ' selected' : '') + '>Status: Resolved</option>' +
+                      '<option value="dismissed"' + (rec.status === 'dismissed' ? ' selected' : '') + '>Status: Dismissed</option>' +
+                    '</select>' +
+                    '<select class="select select-compact js-verif-sel" data-id="' + escapeHtml(f.id) + '" aria-label="Issue verification">' +
+                      '<option value="suspected"' + (rec.verification === 'suspected' ? ' selected' : '') + '>Suspected (Unverified)</option>' +
+                      '<option value="confirmed_error"' + (rec.verification === 'confirmed_error' ? ' selected' : '') + '>Confirmed Billing Error</option>' +
+                      '<option value="verified_valid"' + (rec.verification === 'verified_valid' ? ' selected' : '') + '>Verified Valid Charge</option>' +
+                    '</select>' +
+                  '</div>' +
+                  '<button type="button" class="btn ' + (isSelected ? 'btn-primary' : 'btn-secondary') + ' btn-sm js-select-finding" data-id="' + escapeHtml(f.id) + '">' +
+                    (isSelected ? 'Selected in Toolkit' : 'Prepare Inquiry') +
+                  '</button>' +
+                '</div>' +
+              '</article>'
+            );
+          }).join('');
+
+          queueEl.querySelectorAll('.js-status-sel').forEach(sel => {
+            sel.addEventListener('change', function () {
+              const id = this.getAttribute('data-id');
+              updateFindingAction(id, { status: this.value });
+              renderAll();
+              showToast('Marked issue as ' + this.value + '.');
+            });
+          });
+
+          queueEl.querySelectorAll('.js-verif-sel').forEach(sel => {
+            sel.addEventListener('change', function () {
+              const id = this.getAttribute('data-id');
+              letterDirty = false;
+              updateFindingAction(id, { verification: this.value });
+              renderAll();
+              showToast('Updated classification.');
+            });
+          });
+
+          queueEl.querySelectorAll('.js-select-finding').forEach(btn => {
+            btn.addEventListener('click', function () {
+              selectedFindingId = this.getAttribute('data-id');
+              letterDirty = false;
+              renderAll();
+            });
+          });
+        }
+
+        // Update Right Toolkit Context
+        const activeFinding = analysis.findings.find(f => f.id === selectedFindingId) || null;
+        const ctxEl = document.getElementById('selectedFindingContext');
+        if (activeFinding) {
+          ctxEl.innerHTML = 'Working on: <strong style="color:var(--text-primary);">' + escapeHtml(activeFinding.provider) + ' (' + escapeHtml(activeFinding.billingPeriod) + ')</strong> — ' + escapeHtml(activeFinding.title);
+        } else {
+          ctxEl.textContent = 'Select a finding on the left to generate a letter or log provider reference numbers.';
+        }
+
+        refreshLetterBox();
+        renderChecklist();
+        renderContactLogs(activeFinding);
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeConfirm();
+      });
+
+      ensureInitialized();
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
