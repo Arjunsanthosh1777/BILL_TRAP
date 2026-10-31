@@ -175,3 +175,7 @@ Verify every interactive control across all three standalone HTML files:
 1. `billtrap.html`: Add/edit/delete statements, copy line-item sum to total, live threshold slider/input, provider vs. category comparison toggle, side-by-side comparison inspector, search/filter/sort, and Clear/Restore Sample Data.
 2. `history.html`: Native SVG monthly trend chart, Monthly Category Comparison Matrix, Recurring Increases & Annualized Cost view, historical record edit/delete modals, empty states, and RFC-4180 CSV download.
 3. `action-center.html`: Deep-link `?bill=<id>` filtering, `Needs Review / Reviewed / Resolved / Dismissed` status updates, explicit `Suspected Issue` vs. `Confirmed Billing Error` classification, customizable inquiry letter generator with clipboard copy & `.txt` download, persistent call checklist, provider contact reference logger, and `.txt`/`.csv` findings report exports.
+
+### Implementation Prompt 4 — Follow-Up Request: INR Currency Conversion ("MAKE THE PAYMENT CURRENCY INR")
+Convert all payment currency formatting, form labels, placeholders, validation bounds, SVG Y-axis tick steps, CSV/report headers, inquiry letters, and sample datasets across `billtrap.html`, `history.html`, `action-center.html`, and `README.md` to Indian Rupees (`INR` / `₹`) using `en-IN` locale formatting (`₹1,25,000.00`). Include a `currencyVersion: 'INR_v1'` localStorage migration in `ensureInitialized()` so previously cached sample records seamlessly update to realistic INR billing amounts while preserving user-entered statements.
+

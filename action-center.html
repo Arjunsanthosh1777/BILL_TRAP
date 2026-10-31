@@ -731,12 +731,12 @@
           </div>
           <div class="metric-card">
             <span class="metric-label">Est. Potential Savings</span>
-            <span class="metric-value text-lime" id="kpiPotentialSavings">$0.00</span>
+            <span class="metric-value text-lime" id="kpiPotentialSavings">₹0.00</span>
             <span class="metric-foot">De-duplicated active monthly delta</span>
           </div>
           <div class="metric-card">
             <span class="metric-label">Resolved Credits Logged</span>
-            <span class="metric-value text-lime" id="kpiResolvedCredits">$0.00</span>
+            <span class="metric-value text-lime" id="kpiResolvedCredits">₹0.00</span>
             <span class="metric-foot" id="kpiContactLogCount">0 provider contacts logged</span>
           </div>
         </section>
@@ -870,7 +870,7 @@
                     <input type="text" id="contactRefInput" class="input tabular" placeholder="e.g., CASE-77219" maxlength="50" required />
                   </div>
                   <div class="field">
-                    <label for="contactCreditInput">Confirmed Credit / Refund ($)</label>
+                    <label for="contactCreditInput">Confirmed Credit / Refund (₹)</label>
                     <input type="number" id="contactCreditInput" class="input tabular" min="0" step="0.01" placeholder="0.00" />
                   </div>
                 </div>
@@ -888,7 +888,7 @@
 
                 <div class="field">
                   <label for="contactNotesInput">Representative Name &amp; Summary Notes</label>
-                  <input type="text" id="contactNotesInput" class="input" placeholder="e.g., Spoke with Dana; $13.99 duplicate credited to next cycle" maxlength="180" />
+                  <input type="text" id="contactNotesInput" class="input" placeholder="e.g., Spoke with Dana; ₹199.00 duplicate credited to next cycle" maxlength="180" />
                 </div>
 
                 <div id="contactFormError" style="color:var(--danger-red);font-size:12.5px;margin-bottom:8px;"></div>
@@ -955,8 +955,8 @@
       function fmtCurrency(val) {
         if (val === null || val === undefined || !Number.isFinite(Number(val))) return '—';
         const n = Number(val);
-        const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        return (n < 0 ? '-$' : '$') + abs;
+        const abs = Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (n < 0 ? '-₹' : '₹') + abs;
       }
 
       function fmtSignedCurrency(val) {
@@ -980,24 +980,24 @@
 
       function getSampleBills() {
         return [
-          { id: 'sample_elec_2026_06', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 114.20, lineItems: [{ id: 'li_nse_6_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_6_2', description: 'Electricity Usage (710 kWh)', amount: 89.40 }, { id: 'li_nse_6_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample summer baseline statement', isSample: true, createdAt: '2026-06-08T10:00:00.000Z' },
-          { id: 'sample_elec_2026_07', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 118.50, lineItems: [{ id: 'li_nse_7_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_7_2', description: 'Electricity Usage (740 kWh)', amount: 93.70 }, { id: 'li_nse_7_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample July statement', isSample: true, createdAt: '2026-07-08T10:00:00.000Z' },
-          { id: 'sample_elec_2026_08', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 121.00, lineItems: [{ id: 'li_nse_8_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_8_2', description: 'Electricity Usage (760 kWh)', amount: 96.20 }, { id: 'li_nse_8_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample August statement', isSample: true, createdAt: '2026-08-08T10:00:00.000Z' },
-          { id: 'sample_elec_2026_09', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 119.80, lineItems: [{ id: 'li_nse_9_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_9_2', description: 'Electricity Usage (750 kWh)', amount: 95.00 }, { id: 'li_nse_9_3', description: 'State Grid Reliability Fee', amount: 6.80 }], notes: 'Sample September statement', isSample: true, createdAt: '2026-09-08T10:00:00.000Z' },
-          { id: 'sample_elec_2026_10', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 164.70, lineItems: [{ id: 'li_nse_10_1', description: 'Base Residential Delivery', amount: 18.00 }, { id: 'li_nse_10_2', description: 'Electricity Usage (765 kWh)', amount: 96.80 }, { id: 'li_nse_10_3', description: 'Peak Demand Surcharge', amount: 29.90 }, { id: 'li_nse_10_4', description: 'Environmental Recovery Fee', amount: 10.00 }, { id: 'li_nse_10_5', description: 'Environmental Recovery Fee', amount: 10.00 }], notes: 'Sample October statement with new surcharge and repeated fee', isSample: true, createdAt: '2026-10-08T10:00:00.000Z' },
-          { id: 'sample_mob_2026_07', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_7_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_7_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-07-12T10:00:00.000Z' },
-          { id: 'sample_mob_2026_08', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_8_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_8_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-08-12T10:00:00.000Z' },
-          { id: 'sample_mob_2026_09', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 72.00, lineItems: [{ id: 'li_pw_9_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_9_2', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-09-12T10:00:00.000Z' },
-          { id: 'sample_mob_2026_10', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 99.98, lineItems: [{ id: 'li_pw_10_1', description: 'Unlimited 5G Core Plan', amount: 60.00 }, { id: 'li_pw_10_2', description: 'Device Protection Plus', amount: 13.99 }, { id: 'li_pw_10_3', description: 'Device Protection Plus', amount: 13.99 }, { id: 'li_pw_10_4', description: 'Federal & State Telecom Taxes', amount: 12.00 }], notes: 'Sample October mobile bill with double add-on entry', isSample: true, createdAt: '2026-10-12T10:00:00.000Z' },
-          { id: 'sample_int_2026_06', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 65.00, lineItems: [{ id: 'li_vf_6_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }], notes: 'Sample promotional internet rate', isSample: true, createdAt: '2026-06-15T10:00:00.000Z' },
-          { id: 'sample_int_2026_07', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 65.00, lineItems: [{ id: 'li_vf_7_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }], notes: 'Sample internet bill', isSample: true, createdAt: '2026-07-15T10:00:00.000Z' },
-          { id: 'sample_int_2026_08', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 70.00, lineItems: [{ id: 'li_vf_8_1', description: 'Fiber 500 Symmetric Internet', amount: 65.00 }, { id: 'li_vf_8_2', description: 'Network Infrastructure Fee', amount: 5.00 }], notes: 'Sample internet bill with new fee', isSample: true, createdAt: '2026-08-15T10:00:00.000Z' },
-          { id: 'sample_int_2026_09', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 75.00, lineItems: [{ id: 'li_vf_9_1', description: 'Fiber 500 Symmetric Internet', amount: 70.00 }, { id: 'li_vf_9_2', description: 'Network Infrastructure Fee', amount: 5.00 }], notes: 'Sample gradual plan step-up', isSample: true, createdAt: '2026-09-15T10:00:00.000Z' },
-          { id: 'sample_int_2026_10', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 84.99, lineItems: [{ id: 'li_vf_10_1', description: 'Fiber 500 Symmetric Internet', amount: 74.99 }, { id: 'li_vf_10_2', description: 'Network Infrastructure Fee', amount: 5.00 }, { id: 'li_vf_10_3', description: 'Wi-Fi Gateway Rental Fee', amount: 5.00 }], notes: 'Sample third consecutive monthly increase + router rental fee', isSample: true, createdAt: '2026-10-15T10:00:00.000Z' },
-          { id: 'sample_ins_2026_07', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 142.00, lineItems: [{ id: 'li_hs_7_1', description: 'Comprehensive Auto Policy', amount: 112.00 }, { id: 'li_hs_7_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-07-20T10:00:00.000Z' },
-          { id: 'sample_ins_2026_08', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 142.00, lineItems: [{ id: 'li_hs_8_1', description: 'Comprehensive Auto Policy', amount: 112.00 }, { id: 'li_hs_8_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-08-20T10:00:00.000Z' },
-          { id: 'sample_ins_2026_09', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 148.00, lineItems: [{ id: 'li_hs_9_1', description: 'Comprehensive Auto Policy', amount: 118.00 }, { id: 'li_hs_9_2', description: 'Personal Property Rider', amount: 30.00 }], notes: 'Sample renewal adjustment', isSample: true, createdAt: '2026-09-20T10:00:00.000Z' },
-          { id: 'sample_ins_2026_10', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 173.50, lineItems: [{ id: 'li_hs_10_1', description: 'Comprehensive Auto Policy', amount: 137.00 }, { id: 'li_hs_10_2', description: 'Personal Property Rider', amount: 30.00 }, { id: 'li_hs_10_3', description: 'Paper Statement Admin Fee', amount: 6.50 }], notes: 'Sample October premium jump + paper statement fee', isSample: true, createdAt: '2026-10-20T10:00:00.000Z' }
+          { id: 'sample_elec_2026_06', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 2140.00, lineItems: [{ id: 'li_nse_6_1', description: 'Fixed Supply Charge', amount: 250.00 }, { id: 'li_nse_6_2', description: 'Electricity Usage (285 kWh)', amount: 1740.00 }, { id: 'li_nse_6_3', description: 'State Grid Reliability Fee', amount: 150.00 }], notes: 'Sample summer baseline statement (INR)', isSample: true, createdAt: '2026-06-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_07', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 2260.00, lineItems: [{ id: 'li_nse_7_1', description: 'Fixed Supply Charge', amount: 250.00 }, { id: 'li_nse_7_2', description: 'Electricity Usage (302 kWh)', amount: 1860.00 }, { id: 'li_nse_7_3', description: 'State Grid Reliability Fee', amount: 150.00 }], notes: 'Sample July statement', isSample: true, createdAt: '2026-07-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_08', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 2310.00, lineItems: [{ id: 'li_nse_8_1', description: 'Fixed Supply Charge', amount: 250.00 }, { id: 'li_nse_8_2', description: 'Electricity Usage (310 kWh)', amount: 1910.00 }, { id: 'li_nse_8_3', description: 'State Grid Reliability Fee', amount: 150.00 }], notes: 'Sample August statement', isSample: true, createdAt: '2026-08-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_09', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 2280.00, lineItems: [{ id: 'li_nse_9_1', description: 'Fixed Supply Charge', amount: 250.00 }, { id: 'li_nse_9_2', description: 'Electricity Usage (305 kWh)', amount: 1880.00 }, { id: 'li_nse_9_3', description: 'State Grid Reliability Fee', amount: 150.00 }], notes: 'Sample September statement', isSample: true, createdAt: '2026-09-08T10:00:00.000Z' },
+          { id: 'sample_elec_2026_10', provider: 'NorthStar Energy', category: 'Electricity', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 3190.00, lineItems: [{ id: 'li_nse_10_1', description: 'Fixed Supply Charge', amount: 250.00 }, { id: 'li_nse_10_2', description: 'Electricity Usage (312 kWh)', amount: 1930.00 }, { id: 'li_nse_10_3', description: 'Peak Demand Surcharge', amount: 650.00 }, { id: 'li_nse_10_4', description: 'Environmental Recovery Fee', amount: 180.00 }, { id: 'li_nse_10_5', description: 'Environmental Recovery Fee', amount: 180.00 }], notes: 'Sample October statement with new surcharge and repeated fee', isSample: true, createdAt: '2026-10-08T10:00:00.000Z' },
+          { id: 'sample_mob_2026_07', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 707.00, lineItems: [{ id: 'li_pw_7_1', description: 'Unlimited 5G Postpaid Plan', amount: 599.00 }, { id: 'li_pw_7_2', description: 'Telecom GST & Regulatory Charges', amount: 108.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-07-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_08', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 707.00, lineItems: [{ id: 'li_pw_8_1', description: 'Unlimited 5G Postpaid Plan', amount: 599.00 }, { id: 'li_pw_8_2', description: 'Telecom GST & Regulatory Charges', amount: 108.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-08-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_09', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 707.00, lineItems: [{ id: 'li_pw_9_1', description: 'Unlimited 5G Postpaid Plan', amount: 599.00 }, { id: 'li_pw_9_2', description: 'Telecom GST & Regulatory Charges', amount: 108.00 }], notes: 'Sample mobile plan', isSample: true, createdAt: '2026-09-12T10:00:00.000Z' },
+          { id: 'sample_mob_2026_10', provider: 'Pulse Wireless', category: 'Mobile', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 1105.00, lineItems: [{ id: 'li_pw_10_1', description: 'Unlimited 5G Postpaid Plan', amount: 599.00 }, { id: 'li_pw_10_2', description: 'Device Protection Plus', amount: 199.00 }, { id: 'li_pw_10_3', description: 'Device Protection Plus', amount: 199.00 }, { id: 'li_pw_10_4', description: 'Telecom GST & Regulatory Charges', amount: 108.00 }], notes: 'Sample October mobile bill with double add-on entry', isSample: true, createdAt: '2026-10-12T10:00:00.000Z' },
+          { id: 'sample_int_2026_06', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-06', billingCycle: 'monthly', totalAmount: 999.00, lineItems: [{ id: 'li_vf_6_1', description: 'Fiber 300 Mbps Symmetric Plan', amount: 999.00 }], notes: 'Sample promotional internet rate', isSample: true, createdAt: '2026-06-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_07', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 999.00, lineItems: [{ id: 'li_vf_7_1', description: 'Fiber 300 Mbps Symmetric Plan', amount: 999.00 }], notes: 'Sample internet bill', isSample: true, createdAt: '2026-07-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_08', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 1098.00, lineItems: [{ id: 'li_vf_8_1', description: 'Fiber 300 Mbps Symmetric Plan', amount: 999.00 }, { id: 'li_vf_8_2', description: 'Network Infrastructure Fee', amount: 99.00 }], notes: 'Sample internet bill with new fee', isSample: true, createdAt: '2026-08-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_09', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 1178.00, lineItems: [{ id: 'li_vf_9_1', description: 'Fiber 300 Mbps Symmetric Plan', amount: 1079.00 }, { id: 'li_vf_9_2', description: 'Network Infrastructure Fee', amount: 99.00 }], notes: 'Sample gradual plan step-up', isSample: true, createdAt: '2026-09-15T10:00:00.000Z' },
+          { id: 'sample_int_2026_10', provider: 'Veridian Fiber', category: 'Internet', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 1327.00, lineItems: [{ id: 'li_vf_10_1', description: 'Fiber 300 Mbps Symmetric Plan', amount: 1079.00 }, { id: 'li_vf_10_2', description: 'Network Infrastructure Fee', amount: 99.00 }, { id: 'li_vf_10_3', description: 'Wi-Fi Gateway Rental Fee', amount: 149.00 }], notes: 'Sample third consecutive monthly increase + router rental fee', isSample: true, createdAt: '2026-10-15T10:00:00.000Z' },
+          { id: 'sample_ins_2026_07', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-07', billingCycle: 'monthly', totalAmount: 1850.00, lineItems: [{ id: 'li_hs_7_1', description: 'Comprehensive Motor Policy', amount: 1450.00 }, { id: 'li_hs_7_2', description: 'Personal Accident Rider', amount: 400.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-07-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_08', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-08', billingCycle: 'monthly', totalAmount: 1850.00, lineItems: [{ id: 'li_hs_8_1', description: 'Comprehensive Motor Policy', amount: 1450.00 }, { id: 'li_hs_8_2', description: 'Personal Accident Rider', amount: 400.00 }], notes: 'Sample monthly insurance installment', isSample: true, createdAt: '2026-08-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_09', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-09', billingCycle: 'monthly', totalAmount: 1950.00, lineItems: [{ id: 'li_hs_9_1', description: 'Comprehensive Motor Policy', amount: 1550.00 }, { id: 'li_hs_9_2', description: 'Personal Accident Rider', amount: 400.00 }], notes: 'Sample renewal adjustment', isSample: true, createdAt: '2026-09-20T10:00:00.000Z' },
+          { id: 'sample_ins_2026_10', provider: 'HarborShield Insurance', category: 'Insurance', billingPeriod: '2026-10', billingCycle: 'monthly', totalAmount: 2340.00, lineItems: [{ id: 'li_hs_10_1', description: 'Comprehensive Motor Policy', amount: 1815.00 }, { id: 'li_hs_10_2', description: 'Personal Accident Rider', amount: 400.00 }, { id: 'li_hs_10_3', description: 'Paper Statement Admin Fee', amount: 125.00 }], notes: 'Sample October premium jump + paper statement fee', isSample: true, createdAt: '2026-10-20T10:00:00.000Z' }
         ];
       }
 
@@ -1014,21 +1014,30 @@
       function getSettings() {
         const saved = readStorage(STORAGE_KEYS.SETTINGS, null);
         if (!saved || typeof saved !== 'object') {
-          return { thresholdPercent: 15, comparisonMode: 'provider', sampleInitialized: false };
+          return { thresholdPercent: 15, comparisonMode: 'provider', sampleInitialized: false, currencyVersion: '' };
         }
         const tp = Number(saved.thresholdPercent);
         return {
           thresholdPercent: Number.isFinite(tp) && tp >= 1 && tp <= 100 ? tp : 15,
           comparisonMode: saved.comparisonMode === 'category' ? 'category' : 'provider',
-          sampleInitialized: Boolean(saved.sampleInitialized)
+          sampleInitialized: Boolean(saved.sampleInitialized),
+          currencyVersion: String(saved.currencyVersion || '')
         };
       }
 
       function ensureInitialized() {
         const settings = getSettings();
-        if (!settings.sampleInitialized && readStorage(STORAGE_KEYS.BILLS, null) === null) {
+        const rawBills = readStorage(STORAGE_KEYS.BILLS, null);
+        if (!settings.sampleInitialized && rawBills === null) {
           writeStorage(STORAGE_KEYS.BILLS, getSampleBills());
-          writeStorage(STORAGE_KEYS.SETTINGS, Object.assign({}, settings, { sampleInitialized: true }));
+          writeStorage(STORAGE_KEYS.SETTINGS, Object.assign({}, settings, { sampleInitialized: true, currencyVersion: 'INR_v1' }));
+        } else if (settings.currencyVersion !== 'INR_v1') {
+          const existing = Array.isArray(rawBills) ? rawBills : [];
+          const hasSamples = existing.some(b => b && b.isSample);
+          const userOnly = existing.filter(b => b && !b.isSample);
+          const nextBills = (hasSamples || rawBills === null) ? userOnly.concat(getSampleBills()) : userOnly;
+          writeStorage(STORAGE_KEYS.BILLS, nextBills);
+          writeStorage(STORAGE_KEYS.SETTINGS, Object.assign({}, settings, { sampleInitialized: true, currencyVersion: 'INR_v1' }));
         }
         if (readStorage(STORAGE_KEYS.CHECKLIST, null) === null) {
           writeStorage(STORAGE_KEYS.CHECKLIST, getDefaultChecklist());
@@ -1146,7 +1155,7 @@
               prevAmount: baseline.totalAmount,
               isSample: bill.isSample,
               type: 'unusual_increase',
-              severity: pctChange >= threshold * 1.75 || absChange >= 35 ? 'high' : 'warning',
+              severity: pctChange >= threshold * 1.75 || absChange >= 750 ? 'high' : 'warning',
               badge: 'Review recommended',
               title: 'Unusual increase of +' + pctChange.toFixed(1) + '% (' + fmtSignedCurrency(absChange) + ')',
               explanation: 'Total statement increased from ' + fmtCurrency(baseline.totalAmount) + ' (' + baseline.billingPeriod + ') to ' + fmtCurrency(bill.totalAmount) + ', exceeding your ' + threshold + '% alert threshold.' + (annualized ? ' Continuing at this monthly rate adds ~' + fmtCurrency(annualized) + '/yr.' : ''),
@@ -1552,8 +1561,8 @@
           errBox.textContent = 'Enter a call/chat reference or ticket ID (e.g., NONE if not provided).';
           return;
         }
-        if (!Number.isFinite(creditAmt) || creditAmt < 0 || creditAmt > 100000) {
-          errBox.textContent = 'Credit amount must be zero or a positive number.';
+        if (!Number.isFinite(creditAmt) || creditAmt < 0 || creditAmt > 10000000) {
+          errBox.textContent = 'Credit amount must be zero or a positive number (up to ₹1,00,00,000).';
           return;
         }
 
@@ -1655,8 +1664,8 @@
           };
           const header = [
             'Billing Period', 'Provider', 'Category', 'Warning Label', 'Issue Title',
-            'Verification Classification', 'Workflow Status', 'Estimated Monthly Impact (USD)',
-            'Confirmed Credits Logged (USD)', 'Contact Reference Numbers', 'Explanation'
+            'Verification Classification', 'Workflow Status', 'Estimated Monthly Impact (INR)',
+            'Confirmed Credits Logged (INR)', 'Contact Reference Numbers', 'Explanation'
           ];
           const rows = [header.map(esc).join(',')];
           analysis.findings.forEach(f => {

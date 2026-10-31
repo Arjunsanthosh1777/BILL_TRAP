@@ -44,7 +44,7 @@ All three standalone pages read and write the same `localStorage` keys so update
 1. **Absolute Change**: `currentBill.totalAmount - previousBill.totalAmount`
 2. **Percentage Change**: `((currentBill.totalAmount - previousBill.totalAmount) / previousBill.totalAmount) * 100` (computed only when `previousBill.totalAmount > 0` to prevent division-by-zero errors).
 3. **Annualized Increase Estimate**: `positiveMonthlyIncrease * 12` (shown only when `billingCycle === "monthly"`).
-4. **Possible Duplicate Line Items**: Normalizes descriptions (lowercased, punctuation stripped, whitespace collapsed) and checks for 2+ entries on the same bill with identical normalized text and positive dollar amounts.
+4. **Possible Duplicate Line Items**: Normalizes descriptions (lowercased, punctuation stripped, whitespace collapsed) and checks for 2+ entries on the same bill with identical normalized text and positive INR (`₹`) amounts.
 5. **Non-Accusatory Guidance**: Warnings are labeled `"Review recommended"`, `"Possible duplicate"`, or `"Recurring increase"` and never claim fraud or verified provider wrongdoing until confirmed by the user.
 
 ---
